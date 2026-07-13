@@ -435,6 +435,10 @@
                     if (priceHistory.length > MAX_HISTORY) priceHistory.shift();
                     saveHistory();
                     drawChart();
+                } else {
+                    // 如果接口返回异常，显示默认值
+                    document.getElementById('artPrice').innerText = '--';
+                    document.getElementById('artChangeLabel').innerText = '--';
                 }
             } catch (err) {
                 console.error('行情获取失败', err);
