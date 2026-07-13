@@ -159,11 +159,26 @@
             margin-bottom: 16px;
             color: #ccc;
         }
-        canvas#priceChart {
-            width: 100% !important;
-            height: auto !important;
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 220px;
             border-radius: 8px;
             background: rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        canvas#priceChart {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .chart-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #aaa;
+            font-size: 14px;
         }
         .footer-market {
             font-size: 12px;
@@ -263,7 +278,10 @@
                     <span>价格走势 (USD)</span>
                     <span style="color:#888;">实时更新</span>
                 </div>
-                <canvas id="priceChart" height="220"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="priceChart"></canvas>
+                    <div class="chart-loading" id="chartLoading">数据加载中...</div>
+                </div>
             </div>
             <div class="footer-market">数据来源 DexScreener · 每30秒更新</div>
         </div>
@@ -343,11 +361,12 @@
         let allWithdrawData = [];
         let showingAll = false;
 
-        // ====== 行情 ======
+        // ====== 行情相关变量 ======
         let priceHistory = [];
         const MAX_HISTORY = 30;
         const ART_ADDRESS = '0x7ff6eeb4020dad718a791cf5f6c3e72027666666';
         let artInterval = null;
+        let drawPending = false;
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
@@ -361,35 +380,46 @@
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 if (page === 'home') {
                     document.getElementById('homePage').classList.add('active');
-                    if (artInterval) { clearInterval(artInterval); artInterval = null; }
                 } else if (page === 'cart') {
                     document.getElementById('cartPage').classList.add('active');
-                    // 重新校准 canvas 尺寸并获取数据
-                    setTimeout(() => { initChart(); fetchArtPrice(); }, 50);
-                    if (artInterval) clearInterval(artInterval);
-                    artInterval = setInterval(fetchArtPrice, 30000);
+                    // 校准 canvas 并立即绘制已有数据
+                    setTimeout(() => {
+                        initChart();
+                        drawChart();
+                    }, 30);
+                    // 启动定时器（如果尚未启动）
+                    if (!artInterval) {
+                        artInterval = setInterval(fetchArtPrice, 30000);
+                    }
                 } else if (page === 'member') {
                     document.getElementById('memberPage').classList.add('active');
                     loadMemberData();
                     loadOrders('wait');
-                    if (artInterval) { clearInterval(artInterval); artInterval = null; }
                 }
                 window.scrollTo(0, 0);
             })
         });
 
+        // 提前开始获取数据（页面加载后即开始）
+        function startBackgroundFetch() {
+            fetchArtPrice();
+            if (!artInterval) {
+                artInterval = setInterval(fetchArtPrice, 30000);
+            }
+        }
+
         function initChart() {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
-            // 关键：以实际可见宽度设置 canvas 像素宽度，避免拉伸
-            canvas.width = canvas.clientWidth || 300;
+            const wrapper = canvas.parentNode;
+            canvas.width = wrapper.clientWidth;
             canvas.height = 220;
-            drawChart();
         }
 
         window.addEventListener('resize', () => {
             if (document.getElementById('cartPage').classList.contains('active')) {
                 initChart();
+                drawChart();
             }
         });
 
@@ -407,15 +437,16 @@
                     changeEl.innerText = (change >= 0 ? '+' : '') + changeVal + '%';
                     changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
 
-                    // 成交量、流动性、FDV 替换原来的买一卖一
                     document.getElementById('volume').innerText = pair.volume?.h24 ? formatVolume(pair.volume.h24) : '--';
                     document.getElementById('liquidity').innerText = pair.liquidity?.usd ? '$' + formatVolume(pair.liquidity.usd) : '--';
                     document.getElementById('fdv').innerText = pair.fdv ? '$' + formatVolume(pair.fdv) : '--';
 
-                    // 添加价格到历史
+                    // 添加价格历史
                     priceHistory.push(price);
                     if (priceHistory.length > MAX_HISTORY) priceHistory.shift();
-                    drawChart();
+                    // 隐藏加载提示
+                    document.getElementById('chartLoading').style.display = 'none';
+                    scheduleDraw();
                 }
             } catch (err) {
                 console.error('ART数据获取失败', err);
@@ -428,9 +459,23 @@
             return parseFloat(vol).toFixed(2);
         }
 
+        function scheduleDraw() {
+            if (!drawPending) {
+                drawPending = true;
+                requestAnimationFrame(() => {
+                    drawChart();
+                    drawPending = false;
+                });
+            }
+        }
+
         function drawChart() {
             const canvas = document.getElementById('priceChart');
-            if (!canvas || priceHistory.length < 2) return;
+            if (!canvas || priceHistory.length < 2) {
+                document.getElementById('chartLoading').style.display = 'block';
+                return;
+            }
+            document.getElementById('chartLoading').style.display = 'none';
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
             const h = canvas.height;
@@ -439,10 +484,8 @@
             const min = Math.min(...priceHistory);
             const max = Math.max(...priceHistory);
             const range = max - min;
-
-            // 如果价格完全相同，让线条显示在中间
             const effectiveRange = range === 0 ? 1 : range;
-            const padding = 10;
+            const padding = 15;
 
             const getY = (price) => {
                 return h - ((price - min) / effectiveRange) * (h - padding * 2) - padding;
@@ -463,19 +506,18 @@
                 const y = getY(priceHistory[i]);
                 ctx.lineTo(x, y);
             }
-            // 绘制折线
             ctx.strokeStyle = '#c9a15e';
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // 绘制下方填充
+            // 填充区域
             ctx.lineTo(w, h);
             ctx.lineTo(0, h);
             ctx.closePath();
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            // 最新价格点高亮
+            // 最新点
             const lastIdx = priceHistory.length - 1;
             const lastX = w;
             const lastY = getY(priceHistory[lastIdx]);
@@ -659,8 +701,8 @@
             if(!localStorage.getItem('loginUser')) return location.href='index.html';
             loadGoods();
             try{ await fetch(`${API}/release`); }catch(e){}
-            // 预初始化图表但不绘制，等待数据
-            initChart();
+            // 后台开始获取行情数据
+            startBackgroundFetch();
         }
     </script>
 </body>
