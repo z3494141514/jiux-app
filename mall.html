@@ -77,7 +77,7 @@
             box-shadow: 0 4px 10px rgba(140,28,19,0.2);
         }
 
-        /* ===== 行情页高端UI ===== */
+        /* 行情页高端UI */
         .market-bg {
             background: linear-gradient(160deg, #0b0b1a 0%, #1a1a2e 100%);
             min-height: calc(100vh - 52px);
@@ -137,6 +137,12 @@
             margin-top: 20px;
             font-size: 13px;
             color: #aab;
+            flex-wrap: wrap;
+        }
+        .extra-info div {
+            background: rgba(255,255,255,0.04);
+            padding: 6px 14px;
+            border-radius: 8px;
         }
         .chart-card {
             background: rgba(255,255,255,0.03);
@@ -153,10 +159,18 @@
             margin-bottom: 16px;
             color: #ccc;
         }
-        canvas {
-            width: 100% !important;
-            height: auto !important;
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 220px;
             border-radius: 8px;
+            background: rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        canvas#priceChart {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
         }
         .footer-market {
             font-size: 12px;
@@ -246,19 +260,21 @@
                     <span style="color:#888;">24h 涨跌</span>
                 </div>
                 <div class="extra-info">
-                    <div>买一 <span id="bidPrice">--</span></div>
-                    <div>卖一 <span id="askPrice">--</span></div>
                     <div>成交量 <span id="volume">--</span></div>
+                    <div>流动性 <span id="liquidity">--</span></div>
+                    <div>FDV <span id="fdv">--</span></div>
                 </div>
             </div>
             <div class="chart-card">
                 <div class="chart-title">
                     <span>价格走势 (USD)</span>
-                    <span style="color:#888;">实时更新</span>
+                    <span style="color:#888;">每30秒更新</span>
                 </div>
-                <canvas id="priceChart" height="220"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="priceChart"></canvas>
+                </div>
             </div>
-            <div class="footer-market">数据来源 DexScreener · 自动刷新</div>
+            <div class="footer-market">数据来源 DexScreener（服务端代理）</div>
         </div>
     </div>
 
@@ -336,16 +352,21 @@
         let allWithdrawData = [];
         let showingAll = false;
 
-        // ====== 行情 ======
-        let priceHistory = [];
-        const MAX_HISTORY = 30;
-        const ART_ADDRESS = '0x7ff6eeb4020dad718a791cf5f6c3e72027666666';
-        let chartReady = false;
+        // 持久化价格历史
+        let priceHistory = (() => {
+            try { return JSON.parse(localStorage.getItem('artPriceHistory')) || []; } catch(e) { return []; }
+        })();
         let artInterval = null;
+        const MAX_HISTORY = 30;
+
+        function saveHistory() {
+            try { localStorage.setItem('artPriceHistory', JSON.stringify(priceHistory)); } catch(e) {}
+        }
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
 
+        // 导航切换
         document.querySelectorAll('.footer-item').forEach(item => {
             item.addEventListener('click', function () {
                 document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
@@ -354,111 +375,120 @@
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 if (page === 'home') {
                     document.getElementById('homePage').classList.add('active');
-                    if (artInterval) clearInterval(artInterval);
+                    stopMarketTimer();
                 } else if (page === 'cart') {
                     document.getElementById('cartPage').classList.add('active');
-                    initChart();
-                    fetchArtPrice();
-                    if (artInterval) clearInterval(artInterval);
-                    artInterval = setInterval(fetchArtPrice, 30000);
+                    startMarketPage();
                 } else if (page === 'member') {
                     document.getElementById('memberPage').classList.add('active');
                     loadMemberData();
                     loadOrders('wait');
-                    if (artInterval) clearInterval(artInterval);
+                    stopMarketTimer();
                 }
                 window.scrollTo(0, 0);
             })
         });
 
+        function stopMarketTimer() {
+            if (artInterval) { clearInterval(artInterval); artInterval = null; }
+        }
+
+        function startMarketPage() {
+            setTimeout(() => {
+                initChart();
+                if (priceHistory.length >= 2) drawChart();
+                fetchArtPrice();
+                if (artInterval) clearInterval(artInterval);
+                artInterval = setInterval(fetchArtPrice, 30000);
+            }, 100);
+        }
+
         function initChart() {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            // 设置画布尺寸
-            canvas.width = canvas.clientWidth;
+            const wrapper = canvas.parentNode;
+            const w = wrapper.clientWidth || 300;
+            if (w === 0) return;
+            canvas.width = w;
             canvas.height = 220;
-            chartReady = true;
-            drawChart();
         }
-
-        window.addEventListener('resize', () => {
-            if (document.getElementById('cartPage').classList.contains('active')) {
-                initChart();
-            }
-        });
 
         async function fetchArtPrice() {
             try {
-                const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ART_ADDRESS}`);
-                const data = await res.json();
-                if (data.pairs && data.pairs.length > 0) {
-                    const pair = data.pairs[0];
-                    const price = parseFloat(pair.priceUsd);
-                    const change = parseFloat(pair.priceChange.h24);
+                const res = await fetch('/api/art-price');
+                const json = await res.json();
+                if (json.code === 0 && json.data) {
+                    const d = json.data;
+                    const price = parseFloat(d.price);
+                    if (isNaN(price)) return;
+
                     document.getElementById('artPrice').innerText = '$' + price.toFixed(6);
+                    const change = parseFloat(d.change24h);
                     const changeEl = document.getElementById('artChangeLabel');
                     changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
                     changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
-                    document.getElementById('bidPrice').innerText = parseFloat(pair.bid) ? '$' + parseFloat(pair.bid).toFixed(6) : '--';
-                    document.getElementById('askPrice').innerText = parseFloat(pair.ask) ? '$' + parseFloat(pair.ask).toFixed(6) : '--';
-                    document.getElementById('volume').innerText = pair.volume?.h24 ? formatVolume(pair.volume.h24) : '--';
+                    document.getElementById('volume').innerText = formatVolume(d.volume24h);
+                    document.getElementById('liquidity').innerText = formatVolume(d.liquidity);
+                    document.getElementById('fdv').innerText = formatVolume(d.fdv);
+
                     priceHistory.push(price);
                     if (priceHistory.length > MAX_HISTORY) priceHistory.shift();
-                    if (chartReady) drawChart();
+                    saveHistory();
+                    drawChart();
                 }
             } catch (err) {
-                console.error('ART数据获取失败', err);
+                console.error('行情获取失败', err);
             }
         }
 
         function formatVolume(vol) {
-            if (vol >= 1000000) return (vol / 1000000).toFixed(2) + 'M';
-            if (vol >= 1000) return (vol / 1000).toFixed(2) + 'K';
-            return vol.toFixed(2);
+            const v = parseFloat(vol);
+            if (isNaN(v)) return '--';
+            if (v >= 1000000) return '$' + (v / 1000000).toFixed(2) + 'M';
+            if (v >= 1000) return '$' + (v / 1000).toFixed(2) + 'K';
+            return '$' + v.toFixed(2);
         }
 
         function drawChart() {
             const canvas = document.getElementById('priceChart');
-            if (!canvas || !chartReady || priceHistory.length < 2) return;
+            if (!canvas || priceHistory.length < 2) return;
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
             const h = canvas.height;
+            if (w === 0 || h === 0) return;
             ctx.clearRect(0, 0, w, h);
 
             const min = Math.min(...priceHistory);
             const max = Math.max(...priceHistory);
             const range = max - min || 1;
+            const padding = 20;
 
-            // 渐变填充
+            const getX = (i) => (i / (priceHistory.length - 1)) * w;
+            const getY = (price) => h - ((price - min) / range) * (h - padding * 2) - padding;
+
             const gradient = ctx.createLinearGradient(0, 0, 0, h);
-            gradient.addColorStop(0, 'rgba(201,161,94,0.3)');
+            gradient.addColorStop(0, 'rgba(201,161,94,0.35)');
             gradient.addColorStop(1, 'rgba(201,161,94,0)');
 
             ctx.beginPath();
-            const firstX = 0;
-            const firstY = h - ((priceHistory[0] - min) / range) * (h - 20) - 10;
-            ctx.moveTo(firstX, firstY);
+            ctx.moveTo(getX(0), getY(priceHistory[0]));
             for (let i = 1; i < priceHistory.length; i++) {
-                const x = (i / (priceHistory.length - 1)) * w;
-                const y = h - ((priceHistory[i] - min) / range) * (h - 20) - 10;
-                ctx.lineTo(x, y);
+                ctx.lineTo(getX(i), getY(priceHistory[i]));
             }
-            // 绘制下方填充
             ctx.strokeStyle = '#c9a15e';
             ctx.lineWidth = 2;
             ctx.stroke();
-            ctx.lineTo(w, h);
-            ctx.lineTo(0, h);
+
+            ctx.lineTo(getX(priceHistory.length - 1), h);
+            ctx.lineTo(getX(0), h);
             ctx.closePath();
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            // 最后价格点
-            const lastX = w;
-            const lastY = h - ((priceHistory[priceHistory.length-1] - min) / range) * (h - 20) - 10;
+            const lastX = getX(priceHistory.length - 1);
+            const lastY = getY(priceHistory[priceHistory.length - 1]);
             ctx.beginPath();
-            ctx.arc(lastX, lastY, 4, 0, Math.PI*2);
+            ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.fill();
             ctx.strokeStyle = '#c9a15e';
@@ -637,8 +667,6 @@
             if(!localStorage.getItem('loginUser')) return location.href='index.html';
             loadGoods();
             try{ await fetch(`${API}/release`); }catch(e){}
-            // 预初始化图表
-            initChart();
         }
     </script>
 </body>
