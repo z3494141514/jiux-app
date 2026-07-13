@@ -25,6 +25,8 @@
         th{background:#f7f7f7;}
         .tip{color:#666;margin:8px 0;font-size:13px;}
         .mini-input{width:80px;height:30px;}
+        .dash-item{flex:1;min-width:200px;background:#f9f5ee;padding:20px;border-radius:12px;}
+        .dash-value{font-size:28px;font-weight:bold;}
     </style>
 </head>
 <body>
@@ -32,7 +34,9 @@
         <div class="header"><h2>酒蕴茶乡 综合管理后台</h2></div>
 
         <div class="tab-box">
-            <button class="tab-item active" data-tab="config">全局参数</button>
+            <button class="tab-item active" data-tab="dashboard">数据概览</button>
+            <button class="tab-item" data-tab="config">全局参数</button>
+            <button class="tab-item" data-tab="goods">商品管理</button>
             <button class="tab-item" data-tab="user">会员管理&充值</button>
             <button class="tab-item" data-tab="order">订单管理</button>
             <button class="tab-item" data-tab="withdraw">提现审核</button>
@@ -40,129 +44,90 @@
             <button class="tab-item" data-tab="releaseLog">算力释放日志</button>
         </div>
 
-        <div class="panel active" id="panel-config">
+        <!-- 数据概览 -->
+        <div class="panel active" id="panel-dashboard">
+            <h3>实时数据概览</h3>
+            <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:20px;">
+                <div class="dash-item"><div style="color:#666;">总用户数</div><div class="dash-value" id="dashUsers">0</div></div>
+                <div class="dash-item"><div style="color:#666;">今日订单</div><div class="dash-value" id="dashTodayOrders">0</div></div>
+                <div class="dash-item"><div style="color:#666;">累计充值(酒令)</div><div class="dash-value" id="dashRecharge">0</div></div>
+                <div class="dash-item"><div style="color:#666;">累计提现(酒豆)</div><div class="dash-value" id="dashWithdraw">0</div></div>
+            </div>
+        </div>
+
+        <!-- 全局参数 -->
+        <div class="panel" id="panel-config">
             <h3>业务参数设置</h3>
             <p class="tip">修改后保存立即生效，影响全平台规则</p>
-            <div class="form-item">
-                <label>购买赠送算力倍数</label>
-                <input type="number" id="powerRatio" step="0.1">
-            </div>
-            <div class="form-item">
-                <label>每日算力释放小时(0-23)</label>
-                <input type="number" id="releaseHour" min="0" max="23">
-            </div>
-            <div class="form-item">
-                <label>每日算力释放比例</label>
-                <input type="number" id="releaseRate" step="0.01">
-            </div>
-            <div class="form-item">
-                <label>数字资产兑换酒豆比例</label>
-                <input type="number" id="assetToBeanRate">
-            </div>
+            <div class="form-item"><label>购买赠送算力倍数</label><input type="number" id="powerRatio" step="0.1"></div>
+            <div class="form-item"><label>每日算力释放小时(0-23)</label><input type="number" id="releaseHour" min="0" max="23"></div>
+            <div class="form-item"><label>每日算力释放比例</label><input type="number" id="releaseRate" step="0.01"></div>
+            <div class="form-item"><label>数字资产兑换酒豆比例</label><input type="number" id="assetToBeanRate"></div>
             <button onclick="saveConfig()">保存配置</button>
         </div>
 
+        <!-- 商品管理 -->
+        <div class="panel" id="panel-goods">
+            <h3>商品管理</h3>
+            <p class="tip">新增/编辑商品，下架后用户端不展示</p>
+            <input type="hidden" id="editId">
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                <div class="form-item" style="flex:1; min-width:200px;"><label>商品名称</label><input type="text" id="goodsName" style="width:100%;"></div>
+                <div class="form-item" style="flex:1; min-width:120px;"><label>价格(酒令)</label><input type="number" id="goodsPrice" style="width:100%;"></div>
+                <div class="form-item" style="flex:1; min-width:200px;"><label>图片URL</label><input type="text" id="goodsImage" style="width:100%;"></div>
+                <div class="form-item" style="flex:1; min-width:120px;"><label>排序</label><input type="number" id="goodsSort" value="0" style="width:100%;"></div>
+                <div class="form-item" style="flex:1; min-width:150px;"><label>状态</label><select id="goodsStatus"><option value="active">上架</option><option value="inactive">下架</option></select></div>
+            </div>
+            <div class="form-item"><label>描述</label><input type="text" id="goodsDesc" style="width:100%;" placeholder="简短描述"></div>
+            <button onclick="saveGoods()">保存商品</button>
+            <button class="gray" onclick="clearGoodsForm()">清空表单</button>
+            <hr style="margin:15px 0;">
+            <table><thead><tr><th>ID</th><th>名称</th><th>价格</th><th>图片</th><th>状态</th><th>排序</th><th>操作</th></tr></thead><tbody id="goodsTable"></tbody></table>
+        </div>
+
+        <!-- 会员管理&充值 -->
         <div class="panel" id="panel-user">
             <h3>会员列表 & 酒令充值</h3>
             <p class="tip">选中会员，填写充值数量，点击充值即可增加用户酒令</p>
-            <div class="form-item">
-                <label>选择会员手机号</label>
-                <select id="userSelect"></select>
-            </div>
-            <div class="form-item">
-                <label>充值酒令数量</label>
-                <input type="number" id="rechargeNum" min="1" value="100">
-            </div>
+            <div class="form-item"><label>选择会员手机号</label><select id="userSelect"></select></div>
+            <div class="form-item"><label>充值酒令数量</label><input type="number" id="rechargeNum" min="1" value="100"></div>
             <button onclick="userRecharge()">确认充值</button>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>会员ID(手机号)</th>
-                        <th>总算力</th>
-                        <th>数字资产</th>
-                        <th>酒豆</th>
-                        <th>酒令</th>
-                        <th>注册时间</th>
-                    </tr>
-                </thead>
-                <tbody id="userTable"></tbody>
-            </table>
+            <table><thead><tr><th>会员ID(手机号)</th><th>总算力</th><th>数字资产</th><th>酒豆</th><th>酒令</th><th>注册时间</th></tr></thead><tbody id="userTable"></tbody></table>
         </div>
 
+        <!-- 订单管理 -->
         <div class="panel" id="panel-order">
             <h3>全部订单 & 状态修改</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>订单ID</th>
-                        <th>会员</th>
-                        <th>商品编号</th>
-                        <th>金额</th>
-                        <th>当前状态</th>
-                        <th>下单时间</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="orderTable"></tbody>
-            </table>
+            <table><thead><tr><th>订单ID</th><th>会员</th><th>商品编号</th><th>金额</th><th>当前状态</th><th>下单时间</th><th>操作</th></tr></thead><tbody id="orderTable"></tbody></table>
         </div>
 
+        <!-- 提现审核 -->
         <div class="panel" id="panel-withdraw">
             <h3>用户酒豆提现审核</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>申请ID</th>
-                        <th>会员</th>
-                        <th>提现酒豆数量</th>
-                        <th>提现地址</th>
-                        <th>申请时间</th>
-                        <th>当前状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="withdrawTable"></tbody>
-            </table>
+            <table><thead><tr><th>申请ID</th><th>会员</th><th>提现酒豆数量</th><th>提现地址</th><th>申请时间</th><th>当前状态</th><th>操作</th></tr></thead><tbody id="withdrawTable"></tbody></table>
         </div>
 
+        <!-- 充值记录 -->
         <div class="panel" id="panel-rechargeLog">
             <h3>后台酒令充值记录</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>会员手机号</th>
-                        <th>充值数量</th>
-                        <th>充值时间</th>
-                    </tr>
-                </thead>
-                <tbody id="rechargeLogTable"></tbody>
-            </table>
+            <table><thead><tr><th>会员手机号</th><th>充值数量</th><th>充值时间</th></tr></thead><tbody id="rechargeLogTable"></tbody></table>
         </div>
 
+        <!-- 释放日志 -->
         <div class="panel" id="panel-releaseLog">
             <h3>每日算力释放记录</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>释放日期</th>
-                        <th>参与用户数</th>
-                        <th>执行时间</th>
-                    </tr>
-                </thead>
-                <tbody id="releaseLogTable"></tbody>
-            </table>
+            <table><thead><tr><th>释放日期</th><th>参与用户数</th><th>执行时间</th></tr></thead><tbody id="releaseLogTable"></tbody></table>
         </div>
     </div>
 
     <script>
         const API_BASE = "/api";
-        // ⚠️ 务必修改为你在 Cloudflare 环境变量中设置的 ADMIN_KEY
-        const ADMIN_KEY = 'jycx';
+        const ADMIN_KEY = 'jycx'; // 替换为你的实际密钥
 
         let allUsers = [], allOrders = [], allWithdraws = [], allRecharges = [], allReleases = [];
         let config = {};
 
+        // Tab切换
         document.querySelectorAll('.tab-item').forEach(tab => {
             tab.addEventListener('click', function () {
                 document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
@@ -170,6 +135,8 @@
                 let t = this.dataset.tab;
                 document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
                 document.getElementById('panel-' + t).classList.add('active');
+                if (t === 'dashboard') loadDashboard();
+                if (t === 'goods') loadGoods();
                 if (t === 'user') renderUser();
                 if (t === 'order') renderOrder();
                 if (t === 'withdraw') renderWithdraw();
@@ -178,25 +145,19 @@
             })
         });
 
+        // ---------- 数据加载 ----------
         async function loadAllData() {
             try {
-                const res = await fetch(`${API_BASE}/admin`, {
-                    headers: { 'X-Admin-Key': ADMIN_KEY }
-                });
+                const res = await fetch(`${API_BASE}/admin`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
                 const json = await res.json();
-                if (json.code !== 0) {
-                    alert("鉴权失败，请检查 ADMIN_KEY 是否正确");
-                    return;
-                }
+                if (json.code !== 0) { alert("鉴权失败"); return; }
                 allUsers = json.users || [];
                 allOrders = json.orders || [];
                 allWithdraws = json.withdrawLog || [];
                 allRecharges = json.rechargeLog || [];
                 allReleases = json.releaseLog || [];
 
-                const cfgRes = await fetch(`${API_BASE}/config`, {
-                    headers: { 'X-Admin-Key': ADMIN_KEY }
-                });
+                const cfgRes = await fetch(`${API_BASE}/config`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
                 const cfgJson = await cfgRes.json();
                 config = cfgJson.config || {};
                 document.getElementById('powerRatio').value = config.powerRatio || 2;
@@ -204,9 +165,19 @@
                 document.getElementById('releaseRate').value = config.releaseRate || 0.05;
                 document.getElementById('assetToBeanRate').value = config.assetToBeanRate || 5;
 
+                loadDashboard();
                 renderAll();
-            } catch (err) {
-                alert("接口加载失败：" + err.message);
+            } catch (err) { alert("接口加载失败：" + err.message); }
+        }
+
+        async function loadDashboard() {
+            const res = await fetch(`${API_BASE}/dashboard`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
+            const json = await res.json();
+            if (json.code === 0) {
+                document.getElementById('dashUsers').innerText = json.data.totalUsers;
+                document.getElementById('dashTodayOrders').innerText = json.data.todayOrders;
+                document.getElementById('dashRecharge').innerText = json.data.totalRecharge;
+                document.getElementById('dashWithdraw').innerText = json.data.totalWithdraw;
             }
         }
 
@@ -225,6 +196,79 @@
             alert("配置保存成功！");
         }
 
+        // ---------- 商品管理 ----------
+        async function loadGoods() {
+            const res = await fetch(`${API_BASE}/goods`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
+            const data = await res.json();
+            const list = data.list || [];
+            let html = '';
+            list.forEach(g => {
+                html += `<tr>
+                    <td>${g.id}</td><td>${g.name}</td><td>${g.price}</td>
+                    <td><img src="${g.image_url}" width="60"></td>
+                    <td>${g.status==='active'?'上架':'下架'}</td><td>${g.sort}</td>
+                    <td>
+                        <button onclick="editGoods(${g.id})">编辑</button>
+                        <button class="gray" onclick="deleteGoods(${g.id})">下架</button>
+                    </td></tr>`;
+            });
+            document.getElementById('goodsTable').innerHTML = html || '<tr><td colspan="7">暂无商品</td></tr>';
+        }
+
+        function clearGoodsForm() {
+            document.getElementById('editId').value = '';
+            document.getElementById('goodsName').value = '';
+            document.getElementById('goodsPrice').value = '';
+            document.getElementById('goodsImage').value = '';
+            document.getElementById('goodsSort').value = 0;
+            document.getElementById('goodsStatus').value = 'active';
+            document.getElementById('goodsDesc').value = '';
+        }
+
+        async function editGoods(id) {
+            const res = await fetch(`${API_BASE}/goods?id=${id}`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
+            const data = await res.json();
+            if (data.good) {
+                const g = data.good;
+                document.getElementById('editId').value = g.id;
+                document.getElementById('goodsName').value = g.name;
+                document.getElementById('goodsPrice').value = g.price;
+                document.getElementById('goodsImage').value = g.image_url;
+                document.getElementById('goodsSort').value = g.sort;
+                document.getElementById('goodsStatus').value = g.status;
+                document.getElementById('goodsDesc').value = g.description;
+            }
+        }
+
+        async function saveGoods() {
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('goodsName').value.trim();
+            const price = parseFloat(document.getElementById('goodsPrice').value);
+            const image_url = document.getElementById('goodsImage').value.trim();
+            const sort = parseInt(document.getElementById('goodsSort').value) || 0;
+            const status = document.getElementById('goodsStatus').value;
+            const description = document.getElementById('goodsDesc').value.trim();
+            if (!name || !price || !image_url) return alert('请填写名称、价格、图片');
+
+            const body = { id: id ? parseInt(id) : null, name, price, image_url, description, status, sort };
+            await fetch(`${API_BASE}/goods`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+                body: JSON.stringify(body)
+            });
+            alert('保存成功');
+            clearGoodsForm();
+            loadGoods();
+        }
+
+        async function deleteGoods(id) {
+            if (!confirm('确定下架该商品？')) return;
+            await fetch(`${API_BASE}/goods?id=${id}`, { method: 'DELETE', headers: { 'X-Admin-Key': ADMIN_KEY } });
+            alert('已下架');
+            loadGoods();
+        }
+
+        // ---------- 充值 ----------
         async function userRecharge() {
             const phone = document.getElementById('userSelect').value;
             const num = parseInt(document.getElementById('rechargeNum').value);
@@ -239,16 +283,18 @@
             loadAllData();
         }
 
+        // ---------- 订单状态 ----------
         async function changeOrderStatus(orderId, newStatus) {
             await fetch(`${API_BASE}/order-status`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
                 body: JSON.stringify({ orderId, status: newStatus })
             });
-            alert("状态修改成功");
+            alert("修改成功");
             loadAllData();
         }
 
+        // ---------- 提现审核 ----------
         async function auditWithdraw(withdrawId, action) {
             const res = await fetch(`${API_BASE}/audit`, {
                 method: 'POST',
@@ -260,6 +306,7 @@
             loadAllData();
         }
 
+        // ---------- 渲染 ----------
         function renderAll() {
             loadUserSelect();
             renderUser();
@@ -282,106 +329,63 @@
 
         function renderUser() {
             let html = "";
-            if (allUsers.length === 0) {
-                html = "<tr><td colspan='6'>暂无会员数据</td></tr>";
-            } else {
-                allUsers.forEach(u => {
-                    html += `<tr>
-                        <td>${u.phone}</td>
-                        <td>${u.power}</td>
-                        <td>${u.asset}</td>
-                        <td>${u.bean}</td>
-                        <td>${u.token}</td>
-                        <td>${u.create_time}</td>
-                    </tr>`;
-                });
-            }
+            if (allUsers.length === 0) html = "<tr><td colspan='6'>暂无会员数据</td></tr>";
+            else allUsers.forEach(u => {
+                html += `<tr><td>${u.phone}</td><td>${u.power}</td><td>${u.asset}</td><td>${u.bean}</td><td>${u.token}</td><td>${u.create_time}</td></tr>`;
+            });
             document.getElementById('userTable').innerHTML = html;
         }
 
         function renderOrder() {
             let html = "";
-            if (allOrders.length === 0) {
-                html = "<tr><td colspan='7'>暂无订单数据</td></tr>";
-            } else {
-                allOrders.forEach(o => {
-                    const statusText = o.status === 'wait' ? '待发货' : (o.status === 'send' ? '已发货' : '已收货');
-                    html += `<tr>
-                        <td>${o.id}</td>
-                        <td>${o.phone}</td>
-                        <td>${o.goods_id}</td>
-                        <td>${o.price}</td>
-                        <td>${statusText}</td>
-                        <td>${o.create_time}</td>
-                        <td>
-                            <select id="orderSel_${o.id}" class="mini-input">
-                                <option value="wait" ${o.status==='wait'?'selected':''}>待发货</option>
-                                <option value="send" ${o.status==='send'?'selected':''}>已发货</option>
-                                <option value="done" ${o.status==='done'?'selected':''}>已收货</option>
-                            </select>
-                            <button onclick="changeOrderStatus(${o.id}, document.getElementById('orderSel_${o.id}').value)">修改</button>
-                        </td>
-                    </tr>`;
-                });
-            }
+            if (allOrders.length === 0) html = "<tr><td colspan='7'>暂无订单数据</td></tr>";
+            else allOrders.forEach(o => {
+                const statusText = o.status==='wait'?'待发货':(o.status==='send'?'已发货':'已收货');
+                html += `<tr>
+                    <td>${o.id}</td><td>${o.phone}</td><td>${o.goods_id}</td><td>${o.price}</td>
+                    <td>${statusText}</td><td>${o.create_time}</td>
+                    <td>
+                        <select id="orderSel_${o.id}" class="mini-input">
+                            <option value="wait" ${o.status==='wait'?'selected':''}>待发货</option>
+                            <option value="send" ${o.status==='send'?'selected':''}>已发货</option>
+                            <option value="done" ${o.status==='done'?'selected':''}>已收货</option>
+                        </select>
+                        <button onclick="changeOrderStatus(${o.id}, document.getElementById('orderSel_${o.id}').value)">修改</button>
+                    </td></tr>`;
+            });
             document.getElementById('orderTable').innerHTML = html;
         }
 
         function renderWithdraw() {
             let html = "";
-            if (allWithdraws.length === 0) {
-                html = "<tr><td colspan='7'>暂无提现申请</td></tr>";
-            } else {
-                allWithdraws.forEach(w => {
-                    const statusText = w.status === 'wait' ? '待审核' : (w.status === 'pass' ? '已通过' : '已拒绝');
-                    html += `<tr>
-                        <td>${w.id}</td>
-                        <td>${w.phone}</td>
-                        <td>${w.bean_num}</td>
-                        <td>${w.address || '未填写'}</td>
-                        <td>${w.apply_time}</td>
-                        <td>${statusText}</td>
-                        <td>
-                            ${w.status === 'wait' ? `
-                                <button onclick="auditWithdraw(${w.id},'pass')">通过</button>
-                                <button class="gray" onclick="auditWithdraw(${w.id},'refuse')">拒绝</button>
-                            ` : '--'}
-                        </td>
-                    </tr>`;
-                });
-            }
+            if (allWithdraws.length === 0) html = "<tr><td colspan='7'>暂无提现申请</td></tr>";
+            else allWithdraws.forEach(w => {
+                const statusText = w.status==='wait'?'待审核':(w.status==='pass'?'已通过':'已拒绝');
+                html += `<tr>
+                    <td>${w.id}</td><td>${w.phone}</td><td>${w.bean_num}</td><td>${w.address || '未填写'}</td>
+                    <td>${w.apply_time}</td><td>${statusText}</td>
+                    <td>
+                        ${w.status==='wait' ? `<button onclick="auditWithdraw(${w.id},'pass')">通过</button><button class="gray" onclick="auditWithdraw(${w.id},'refuse')">拒绝</button>` : '--'}
+                    </td></tr>`;
+            });
             document.getElementById('withdrawTable').innerHTML = html;
         }
 
         function renderRechargeLog() {
             let html = "";
-            if (allRecharges.length === 0) {
-                html = "<tr><td colspan='3'>暂无充值记录</td></tr>";
-            } else {
-                allRecharges.forEach(r => {
-                    html += `<tr>
-                        <td>${r.phone}</td>
-                        <td>${r.amount}</td>
-                        <td>${r.create_time}</td>
-                    </tr>`;
-                });
-            }
+            if (allRecharges.length === 0) html = "<tr><td colspan='3'>暂无充值记录</td></tr>";
+            else allRecharges.forEach(r => {
+                html += `<tr><td>${r.phone}</td><td>${r.amount}</td><td>${r.create_time}</td></tr>`;
+            });
             document.getElementById('rechargeLogTable').innerHTML = html;
         }
 
         function renderReleaseLog() {
             let html = "";
-            if (allReleases.length === 0) {
-                html = "<tr><td colspan='3'>暂无释放记录</td></tr>";
-            } else {
-                allReleases.forEach(r => {
-                    html += `<tr>
-                        <td>${r.date}</td>
-                        <td>${r.user_count}</td>
-                        <td>${r.executed_time}</td>
-                    </tr>`;
-                });
-            }
+            if (allReleases.length === 0) html = "<tr><td colspan='3'>暂无释放记录</td></tr>";
+            else allReleases.forEach(r => {
+                html += `<tr><td>${r.date}</td><td>${r.user_count}</td><td>${r.executed_time}</td></tr>`;
+            });
             document.getElementById('releaseLogTable').innerHTML = html;
         }
 
