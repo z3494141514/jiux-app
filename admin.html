@@ -119,13 +119,23 @@
                 <input type="hidden" id="editId">
                 <div class="form-grid">
                     <div class="form-item"><label>商品名称</label><input type="text" id="goodsName"></div>
-                    <div class="form-item"><label>价格(酒令)</label><input type="number" id="goodsPrice"></div>
+                    <div class="form-item"><label>价格(酒令/酒豆)</label><input type="number" id="goodsPrice"></div>
                     <div class="form-item"><label>商品图片</label><input type="file" id="goodsImageFile" accept="image/*" onchange="previewImage()"><input type="hidden" id="goodsImageData"><img id="imagePreview" style="max-width:100px;max-height:100px;margin-top:8px;border-radius:8px;display:none;"></div>
                     <div class="form-item"><label>排序</label><input type="number" id="goodsSort" value="0"></div>
                     <div class="form-item"><label>状态</label><select id="goodsStatus"><option value="active">上架</option><option value="inactive">下架</option></select></div>
                     <div class="form-item"><label>描述</label><input type="text" id="goodsDesc" placeholder="简短描述"></div>
+                    <div class="form-item">
+                        <label>支付方式</label>
+                        <select id="goodsPayType">
+                            <option value="token">酒令支付</option>
+                            <option value="bean">酒豆支付</option>
+                        </select>
+                    </div>
                     <div class="form-item"><label>所需最低等级</label><input type="number" id="goodsRequiredLevel" value="0" min="0"></div>
-                    <div class="form-item"><label>购买后升级至等级</label><input type="number" id="goodsUpgradeLevel" value="0" min="0"></div>
+                    <div class="form-item">
+                        <label>购买后升级至等级</label>
+                        <select id="goodsUpgradeLevel"><option value="0">不升级</option></select>
+                    </div>
                     <div class="form-item"><label>库存</label><input type="number" id="goodsStock" value="0" min="0"></div>
                 </div>
                 <div class="flex-row"><button class="btn-primary" onclick="saveGoods()">保存商品</button><button class="btn-gray" onclick="clearGoodsForm()">清空</button></div>
@@ -213,7 +223,7 @@
             if (panel === 'dashboard') loadDashboard();
             if (panel === 'config') loadConfig();
             if (panel === 'levels') loadLevels();
-            if (panel === 'goods') loadGoods();
+            if (panel === 'goods') { loadGoods(); loadLevelOptions(); }
             if (panel === 'users') { loadUsers(); renderUser(); }
             if (panel === 'orders') renderOrder();
             if (panel === 'withdraw') renderWithdraw();
@@ -235,8 +245,9 @@
                 allReleases = json.releaseLog || [];
                 loadDashboard();
                 loadConfig();
-                loadGoods();
                 loadLevels();
+                loadGoods();
+                loadLevelOptions();
                 loadUsers();
                 renderUser();
             } catch (e) { alert('数据加载失败: ' + e.message); }
@@ -262,7 +273,7 @@
                 if (data.config) {
                     document.getElementById('powerRatio').value = data.config.powerRatio || 2;
                     document.getElementById('releaseHour').value = data.config.releaseHour || 8;
-                    document.getElementById('releaseRate').value = data.config.releaseRate || 0.05;
+                    document.getElementById('releaseRate').value = data.config.releaseRate || 0.002;
                     document.getElementById('assetToBeanRate').value = data.config.assetToBeanRate || 5;
                     document.getElementById('withdrawLimitPerDay').value = data.config.withdrawLimitPerDay || 3;
                     document.getElementById('minWithdrawBean').value = data.config.minWithdrawBean || 10;
@@ -338,12 +349,29 @@
             showMsg('保存成功');
             clearLevelForm();
             loadLevels();
+            loadLevelOptions(); // 更新商品升级下拉
         }
 
         async function deleteLevel(id) {
             if (!confirm('确定删除该等级？')) return;
             await fetch(`${API}/levels?id=${id}`, { method: 'DELETE', headers: { 'X-Admin-Key': ADMIN_KEY } });
             loadLevels();
+            loadLevelOptions();
+        }
+
+        // 加载等级下拉选项（商品管理用）
+        async function loadLevelOptions() {
+            const res = await fetch(`${API}/levels`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
+            const data = await res.json();
+            const list = data.list || [];
+            const sel = document.getElementById('goodsUpgradeLevel');
+            sel.innerHTML = '<option value="0">不升级</option>';
+            list.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l.level;
+                opt.innerText = l.name + ' (级别' + l.level + ')';
+                sel.appendChild(opt);
+            });
         }
 
         // ---------- 商品管理 ----------
@@ -403,6 +431,7 @@
             document.getElementById('goodsSort').value = '0';
             document.getElementById('goodsStatus').value = 'active';
             document.getElementById('goodsDesc').value = '';
+            document.getElementById('goodsPayType').value = 'token';
             document.getElementById('goodsRequiredLevel').value = '0';
             document.getElementById('goodsUpgradeLevel').value = '0';
             document.getElementById('goodsStock').value = '0';
@@ -422,7 +451,10 @@
                 document.getElementById('goodsSort').value = g.sort;
                 document.getElementById('goodsStatus').value = g.status;
                 document.getElementById('goodsDesc').value = g.description || '';
+                document.getElementById('goodsPayType').value = g.pay_type || 'token';
                 document.getElementById('goodsRequiredLevel').value = g.required_level || 0;
+                // 加载等级下拉后，再设置值
+                await loadLevelOptions();
                 document.getElementById('goodsUpgradeLevel').value = g.upgrade_level || 0;
                 document.getElementById('goodsStock').value = g.stock || 0;
             }
@@ -439,6 +471,7 @@
                 sort: parseInt(document.getElementById('goodsSort').value) || 0,
                 status: document.getElementById('goodsStatus').value,
                 description: document.getElementById('goodsDesc').value.trim(),
+                pay_type: document.getElementById('goodsPayType').value,
                 required_level: parseInt(document.getElementById('goodsRequiredLevel').value) || 0,
                 upgrade_level: parseInt(document.getElementById('goodsUpgradeLevel').value) || 0,
                 stock: parseInt(document.getElementById('goodsStock').value) || 0
