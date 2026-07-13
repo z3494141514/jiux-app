@@ -58,13 +58,7 @@
             cursor: pointer;
         }
         .goods-item:active { transform: scale(0.99); }
-        .goods-item img {
-            width: 80px; height: 80px;
-            border-radius: 12px;
-            object-fit: cover;
-            margin-right: 14px;
-            flex-shrink: 0;
-        }
+        .goods-item img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; margin-right: 14px; flex-shrink: 0; }
         .goods-item .goods-info { flex: 1; }
         .goods-item .goods-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
         .goods-item .goods-price { font-size: 16px; color: var(--primary); font-weight: 700; }
@@ -82,6 +76,47 @@
             text-decoration: none;
             box-shadow: 0 4px 10px rgba(140,28,19,0.2);
         }
+
+        /* 价格行情页样式 */
+        .price-card {
+            margin: 16px;
+            padding: 24px;
+            background: linear-gradient(135deg, #2d0a0a, #5a1a1a);
+            border-radius: 20px;
+            color: #fff;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+        .price-card .coin-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--gold);
+        }
+        .price-card .coin-price {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .price-card .coin-change {
+            font-size: 16px;
+            margin-top: 8px;
+        }
+        .price-card .coin-change.positive { color: #4caf50; }
+        .price-card .coin-change.negative { color: #f44336; }
+        .chart-container {
+            margin: 0 16px 16px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+        .chart-container h4 {
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: var(--primary);
+        }
+        canvas { width: 100%; height: 200px; display: block; }
 
         .member-header { background:linear-gradient(135deg, #2d0a0a, #5a1a1a); color:#fff; padding:30px 20px; display:flex; align-items:center; }
         .avatar { width:70px; height:70px; border-radius:50%; border:2px solid var(--gold); margin-right:18px; }
@@ -136,6 +171,7 @@
 <body>
     <div class="header"><div class="logo">酒蕴茶乡</div><input class="search-box" placeholder="搜索好物..."></div>
 
+    <!-- 首页 -->
     <div class="page active" id="homePage">
         <div class="banner"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
         <div class="assurance">
@@ -149,8 +185,23 @@
         <div class="goods-list" id="goodsContainer"></div>
     </div>
 
-    <div class="page" id="cartPage"><div style="text-align:center; padding:80px 20px; color:#ccc;">🛒<br>购物车空空如也</div></div>
+    <!-- 行情页（原购物车页） -->
+    <div class="page" id="cartPage">
+        <div class="price-card">
+            <div class="coin-name">ART / BSC</div>
+            <div class="coin-price" id="artPrice">--</div>
+            <div class="coin-change" id="artChange">--</div>
+        </div>
+        <div class="chart-container">
+            <h4>价格走势</h4>
+            <canvas id="priceChart"></canvas>
+        </div>
+        <div style="padding:0 16px; color:#999; font-size:12px; text-align:center;">
+            数据来源：DexScreener · 每30秒更新
+        </div>
+    </div>
 
+    <!-- 会员中心 -->
     <div class="page" id="memberPage">
         <div class="member-header">
             <img class="avatar" src="https://picsum.photos/120/120?avatar">
@@ -192,12 +243,14 @@
         </div>
     </div>
 
+    <!-- 底部导航 -->
     <div class="footer">
         <div class="footer-item active" data-page="home"><div>🏠</div><span>首页</span></div>
-        <div class="footer-item" data-page="cart"><div>🛒</div><span>购物车</span></div>
+        <div class="footer-item" data-page="cart"><div>📈</div><span>行情</span></div>
         <div class="footer-item" data-page="member"><div>👤</div><span>我的</span></div>
     </div>
 
+    <!-- 提现弹窗 -->
     <div class="mask" id="mask"></div>
     <div class="pop" id="withdrawPop">
         <h4 style="text-align:center; margin-bottom:18px;">酒豆提现</h4>
@@ -224,22 +277,126 @@
         let allWithdrawData = [];
         let showingAll = false;
 
+        // ========== 行情相关变量 ==========
+        let priceHistory = [];          // 存储近20个价格点
+        let chartCanvas, chartCtx;
+        const MAX_HISTORY = 20;
+        const ART_ADDRESS = '0x7ff6eeb4020dad718a791cf5f6c3e72027666666'; // 注意：全小写
+
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
 
-        document.querySelectorAll('.footer-item').forEach(item=>{
-            item.addEventListener('click', function(){
-                document.querySelectorAll('.footer-item').forEach(i=>i.classList.remove('active'));
+        // 导航切换
+        document.querySelectorAll('.footer-item').forEach(item => {
+            item.addEventListener('click', function () {
+                document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
                 this.classList.add('active');
                 const page = this.dataset.page;
-                document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-                if(page==='home') document.getElementById('homePage').classList.add('active');
-                else if(page==='cart') document.getElementById('cartPage').classList.add('active');
-                else if(page==='member') { document.getElementById('memberPage').classList.add('active'); loadMemberData(); loadOrders('wait'); }
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                if (page === 'home') document.getElementById('homePage').classList.add('active');
+                else if (page === 'cart') {
+                    document.getElementById('cartPage').classList.add('active');
+                    // 进入行情页时立即拉取一次价格，并启动定时器
+                    fetchArtPrice();
+                    if (!window.artInterval) {
+                        window.artInterval = setInterval(fetchArtPrice, 30000);
+                    }
+                }
+                else if (page === 'member') {
+                    document.getElementById('memberPage').classList.add('active');
+                    loadMemberData();
+                    loadOrders('wait');
+                }
                 window.scrollTo(0, 0);
             })
         });
 
+        // ========== 行情功能 ==========
+        function initChart() {
+            chartCanvas = document.getElementById('priceChart');
+            chartCtx = chartCanvas.getContext('2d');
+            drawChart();
+        }
+
+        async function fetchArtPrice() {
+            try {
+                const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ART_ADDRESS}`);
+                const data = await res.json();
+                if (data.pairs && data.pairs.length > 0) {
+                    const pair = data.pairs[0];
+                    const price = parseFloat(pair.priceUsd);
+                    const change = parseFloat(pair.priceChange.h24);
+                    updatePriceDisplay(price, change);
+                    addPricePoint(price);
+                }
+            } catch (err) {
+                console.error('获取ART价格失败', err);
+            }
+        }
+
+        function updatePriceDisplay(price, change) {
+            document.getElementById('artPrice').innerText = '$' + price.toFixed(6);
+            const changeEl = document.getElementById('artChange');
+            const sign = change >= 0 ? '+' : '';
+            changeEl.innerText = `${sign}${change.toFixed(2)}%`;
+            changeEl.className = 'coin-change ' + (change >= 0 ? 'positive' : 'negative');
+        }
+
+        function addPricePoint(price) {
+            priceHistory.push(price);
+            if (priceHistory.length > MAX_HISTORY) {
+                priceHistory.shift();
+            }
+            drawChart();
+        }
+
+        function drawChart() {
+            if (!chartCtx) return;
+            const w = chartCanvas.width = chartCanvas.clientWidth;
+            const h = chartCanvas.height = 200;
+            chartCtx.clearRect(0, 0, w, h);
+
+            if (priceHistory.length < 2) {
+                chartCtx.fillStyle = '#ccc';
+                chartCtx.font = '14px sans-serif';
+                chartCtx.textAlign = 'center';
+                chartCtx.fillText('数据采集中...', w/2, h/2);
+                return;
+            }
+
+            const min = Math.min(...priceHistory);
+            const max = Math.max(...priceHistory);
+            const range = max - min || 1;
+
+            chartCtx.beginPath();
+            chartCtx.strokeStyle = '#c9a15e';
+            chartCtx.lineWidth = 2;
+            chartCtx.lineJoin = 'round';
+
+            priceHistory.forEach((price, i) => {
+                const x = (i / (priceHistory.length - 1)) * w;
+                const y = h - ((price - min) / range) * (h - 20) - 10;
+                if (i === 0) {
+                    chartCtx.moveTo(x, y);
+                } else {
+                    chartCtx.lineTo(x, y);
+                }
+            });
+            chartCtx.stroke();
+
+            // 标记最新价格
+            const lastX = w;
+            const lastY = h - ((priceHistory[priceHistory.length-1] - min) / range) * (h - 20) - 10;
+            chartCtx.beginPath();
+            chartCtx.arc(lastX-1, lastY, 3, 0, Math.PI*2);
+            chartCtx.fillStyle = '#c9a15e';
+            chartCtx.fill();
+        }
+
+        // 窗口大小变化时重绘
+        window.addEventListener('resize', () => { if (chartCtx) drawChart(); });
+
+        // ========== 商品加载 ==========
         async function loadGoods(){
             const res = await fetch(`${API}/goods-list`);
             const data = await res.json();
@@ -406,10 +563,13 @@
 
         function logout(){ localStorage.removeItem('loginUser'); location.href='index.html'; }
 
+        // 页面初始化
         window.onload=async function(){
             if(!localStorage.getItem('loginUser')) return location.href='index.html';
             loadGoods();
             try{ await fetch(`${API}/release`); }catch(e){}
+            // 初始化图表
+            initChart();
         }
     </script>
 </body>
