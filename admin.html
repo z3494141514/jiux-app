@@ -113,14 +113,36 @@
             </div>
         </div>
 
-        <!-- 商品管理 -->
+        <!-- 商品管理（修改了图片部分） -->
         <div class="panel" id="panel-goods">
             <div class="card"><h3>商品管理</h3>
                 <input type="hidden" id="editId">
                 <div class="form-grid">
                     <div class="form-item"><label>商品名称</label><input type="text" id="goodsName"></div>
                     <div class="form-item"><label>价格(酒令/酒豆)</label><input type="number" id="goodsPrice"></div>
-                    <div class="form-item"><label>商品图片</label><input type="file" id="goodsImageFile" accept="image/*" onchange="previewImage()"><input type="hidden" id="goodsImageData"><img id="imagePreview" style="max-width:100px;max-height:100px;margin-top:8px;border-radius:8px;display:none;"></div>
+
+                    <!-- 图片方式切换 -->
+                    <div class="form-item">
+                        <label>图片方式</label>
+                        <select id="imageMode" onchange="toggleImageMode()">
+                            <option value="url">使用图片 URL</option>
+                            <option value="base64">上传本地图片 (Base64)</option>
+                        </select>
+                    </div>
+                    <!-- URL 输入模式 -->
+                    <div id="urlInputGroup" class="form-item">
+                        <label>商品图片 URL</label>
+                        <input type="text" id="goodsImageUrl" placeholder="https://你的七牛云外链" oninput="previewUrl()">
+                        <img id="urlPreview" style="max-width:100px; max-height:100px; margin-top:8px; border-radius:8px; display:none;">
+                    </div>
+                    <!-- Base64 上传模式 -->
+                    <div id="base64InputGroup" class="form-item" style="display:none;">
+                        <label>上传本地图片</label>
+                        <input type="file" id="goodsImageFile" accept="image/*" onchange="previewImage()">
+                        <input type="hidden" id="goodsImageData">
+                        <img id="imagePreview" style="max-width:100px;max-height:100px;margin-top:8px;border-radius:8px;display:none;">
+                    </div>
+
                     <div class="form-item"><label>排序</label><input type="number" id="goodsSort" value="0"></div>
                     <div class="form-item"><label>状态</label><select id="goodsStatus"><option value="active">上架</option><option value="inactive">下架</option></select></div>
                     <div class="form-item"><label>描述</label><input type="text" id="goodsDesc" placeholder="简短描述"></div>
@@ -391,7 +413,25 @@
             });
         }
 
-        // ---------- 商品管理 ----------
+        // ---------- 商品管理（新增切换函数） ----------
+        function toggleImageMode() {
+            const mode = document.getElementById('imageMode').value;
+            document.getElementById('urlInputGroup').style.display = mode === 'url' ? 'block' : 'none';
+            document.getElementById('base64InputGroup').style.display = mode === 'base64' ? 'block' : 'none';
+        }
+
+        function previewUrl() {
+            const url = document.getElementById('goodsImageUrl').value.trim();
+            const preview = document.getElementById('urlPreview');
+            if (url) {
+                preview.src = url;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        // 原有的 previewImage 函数保持不变（用于 base64）
         function previewImage() {
             const file = document.getElementById('goodsImageFile').files[0];
             if (!file) return;
@@ -442,9 +482,13 @@
             document.getElementById('editId').value = '';
             document.getElementById('goodsName').value = '';
             document.getElementById('goodsPrice').value = '';
+            document.getElementById('goodsImageUrl').value = '';
+            document.getElementById('urlPreview').style.display = 'none';
             document.getElementById('goodsImageFile').value = '';
             document.getElementById('goodsImageData').value = '';
             document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('imageMode').value = 'url';
+            toggleImageMode();
             document.getElementById('goodsSort').value = '0';
             document.getElementById('goodsStatus').value = 'active';
             document.getElementById('goodsDesc').value = '';
@@ -463,32 +507,50 @@
                 document.getElementById('editId').value = g.id;
                 document.getElementById('goodsName').value = g.name;
                 document.getElementById('goodsPrice').value = g.price;
-                document.getElementById('goodsImageData').value = g.image_url;
-                document.getElementById('imagePreview').src = g.image_url;
-                document.getElementById('imagePreview').style.display = 'block';
+                // 判断图片是 base64 还是 URL
+                if (g.image_url && g.image_url.startsWith('data:')) {
+                    document.getElementById('imageMode').value = 'base64';
+                    toggleImageMode();
+                    document.getElementById('goodsImageData').value = g.image_url;
+                    document.getElementById('imagePreview').src = g.image_url;
+                    document.getElementById('imagePreview').style.display = 'block';
+                } else {
+                    document.getElementById('imageMode').value = 'url';
+                    toggleImageMode();
+                    document.getElementById('goodsImageUrl').value = g.image_url || '';
+                    document.getElementById('urlPreview').src = g.image_url || '';
+                    document.getElementById('urlPreview').style.display = g.image_url ? 'block' : 'none';
+                }
                 document.getElementById('goodsSort').value = g.sort;
                 document.getElementById('goodsStatus').value = g.status;
                 document.getElementById('goodsDesc').value = g.description || '';
                 document.getElementById('goodsPayType').value = g.pay_type || 'token';
-                // 下拉需先加载选项再赋值
+                // 加载等级下拉选项
                 await loadLevelOptions();
                 document.getElementById('goodsRequiredLevel').value = g.required_level || 0;
                 document.getElementById('goodsUpgradeLevel').value = g.upgrade_level || 0;
                 document.getElementById('goodsStock').value = g.stock || 0;
-                // 赠送算力倍数
                 document.getElementById('goodsPowerRatio').value = (g.power_ratio != null) ? g.power_ratio : '';
             }
         }
 
         async function saveGoods() {
             const id = document.getElementById('editId').value;
-            const imageData = document.getElementById('goodsImageData').value;
+            const imageMode = document.getElementById('imageMode').value;
+            let image_url;
+            if (imageMode === 'url') {
+                image_url = document.getElementById('goodsImageUrl').value.trim();
+            } else {
+                image_url = document.getElementById('goodsImageData').value;
+            }
+            if (!image_url) return showMsg('请填写图片URL或上传图片');
+
             const powerRatioVal = document.getElementById('goodsPowerRatio').value.trim();
             const body = {
                 id: id ? parseInt(id) : null,
                 name: document.getElementById('goodsName').value.trim(),
                 price: parseFloat(document.getElementById('goodsPrice').value),
-                image_url: imageData,
+                image_url: image_url,
                 sort: parseInt(document.getElementById('goodsSort').value) || 0,
                 status: document.getElementById('goodsStatus').value,
                 description: document.getElementById('goodsDesc').value.trim(),
@@ -498,7 +560,6 @@
                 stock: parseInt(document.getElementById('goodsStock').value) || 0,
                 power_ratio: powerRatioVal === '' ? null : parseFloat(powerRatioVal)
             };
-            if (!body.name || !body.price || !body.image_url) return showMsg('请填写完整信息并选择图片');
             await fetch(`${API}/goods`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
