@@ -189,7 +189,7 @@
             border: none;
             border-radius: 10px;
         }
-        .order-module {
+        .order-module, .withdraw-log-module {
             margin: 15px 12px;
             background: var(--white);
             border-radius: 20px;
@@ -381,6 +381,13 @@
                 <div class="order-empty">暂无相关订单</div>
             </div>
         </div>
+        <!-- 新增提现记录模块 -->
+        <div class="withdraw-log-module">
+            <div style="font-weight:500; margin-bottom:12px;">我的提现申请</div>
+            <div id="withdrawLogContent">
+                <div class="order-empty">暂无提现记录</div>
+            </div>
+        </div>
         <button class="logout" onclick="logout()">退出登录</button>
     </div>
 
@@ -399,15 +406,18 @@
         </div>
     </div>
 
+    <!-- 提现弹窗（新增地址输入） -->
     <div class="mask" id="mask"></div>
     <div class="pop" id="withdrawPop">
         <h4>酒豆提现申请</h4>
         <input type="number" id="withdrawNum" placeholder="请输入提现酒豆数量" min="1">
+        <input type="text" id="withdrawAddr" placeholder="请输入提现地址（字符字母数字组合）">
         <div class="btn-group">
             <button class="cancel" onclick="closeWithdrawPop()">取消</button>
             <button class="submit" onclick="submitWithdraw()">提交申请</button>
         </div>
     </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -462,6 +472,7 @@
             document.getElementById('mask').style.display = 'block';
             document.getElementById('withdrawPop').style.display = 'block';
             document.getElementById('withdrawNum').value = '';
+            document.getElementById('withdrawAddr').value = '';
         }
         function closeWithdrawPop() {
             document.getElementById('mask').style.display = 'none';
@@ -470,16 +481,20 @@
 
         async function submitWithdraw() {
             const num = parseInt(document.getElementById('withdrawNum').value);
+            const addr = document.getElementById('withdrawAddr').value.trim();
             if (!num || num <= 0) return showToast("请输入合法数量");
+            if (!addr) return showToast("请输入提现地址");
             const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
             const res = await fetch(`${API_BASE}/withdraw`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: user.phone, beanNum: num })
+                body: JSON.stringify({ phone: user.phone, beanNum: num, address: addr })
             });
             const data = await res.json();
             showToast(data.msg || "提交失败");
             closeWithdrawPop();
+            // 刷新提现记录
+            loadWithdrawLog();
         }
 
         const footerItems = document.querySelectorAll('.footer-item');
@@ -530,6 +545,7 @@
             document.getElementById('beanVal').innerText = user.bean || "0";
             document.getElementById('tokenVal').innerText = user.token || "0";
             switchOrderTab(0);
+            loadWithdrawLog();
         }
 
         async function renderOrder(tabIndex) {
@@ -553,6 +569,33 @@
                         <div>支付金额：¥${item.price}</div>
                         <div>下单时间：${item.create_time}</div>
                         <div>状态：${statusText}</div>
+                    </div>
+                `;
+            });
+            content.innerHTML = html;
+        }
+
+        async function loadWithdrawLog() {
+            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
+            if (!user.phone) return;
+            const res = await fetch(`${API_BASE}/user-withdraws?phone=${user.phone}`);
+            const data = await res.json();
+            const list = data.list || [];
+            const content = document.getElementById('withdrawLogContent');
+            if (list.length === 0) {
+                content.innerHTML = '<div class="order-empty">暂无提现记录</div>';
+                return;
+            }
+            let html = '';
+            list.forEach(item => {
+                const statusText = item.status === 'wait' ? '待审核' : (item.status === 'pass' ? '已通过' : '已拒绝');
+                const statusColor = item.status === 'pass' ? 'green' : (item.status === 'refuse' ? 'red' : '#f0a020');
+                html += `
+                    <div class="order-item">
+                        <div>提现数量：${item.bean_num} 酒豆</div>
+                        <div>提现地址：${item.address || '未填写'}</div>
+                        <div>申请时间：${item.apply_time}</div>
+                        <div>状态：<span style="color:${statusColor}">${statusText}</span></div>
                     </div>
                 `;
             });

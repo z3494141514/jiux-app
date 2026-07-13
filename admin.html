@@ -116,6 +116,7 @@
                         <th>申请ID</th>
                         <th>会员</th>
                         <th>提现酒豆数量</th>
+                        <th>提现地址</th>
                         <th>申请时间</th>
                         <th>当前状态</th>
                         <th>操作</th>
@@ -193,7 +194,6 @@
                 allRecharges = json.rechargeLog || [];
                 allReleases = json.releaseLog || [];
 
-                // 加载配置
                 const cfgRes = await fetch(`${API_BASE}/config`, {
                     headers: { 'X-Admin-Key': ADMIN_KEY }
                 });
@@ -330,7 +330,7 @@
         function renderWithdraw() {
             let html = "";
             if (allWithdraws.length === 0) {
-                html = "<tr><td colspan='6'>暂无提现申请</td></tr>";
+                html = "<tr><td colspan='7'>暂无提现申请</td></tr>";
             } else {
                 allWithdraws.forEach(w => {
                     const statusText = w.status === 'wait' ? '待审核' : (w.status === 'pass' ? '已通过' : '已拒绝');
@@ -338,6 +338,7 @@
                         <td>${w.id}</td>
                         <td>${w.phone}</td>
                         <td>${w.bean_num}</td>
+                        <td>${w.address || '未填写'}</td>
                         <td>${w.apply_time}</td>
                         <td>${statusText}</td>
                         <td>
