@@ -257,7 +257,7 @@
             <div class="disclaimer">
                 数据及价格有延迟，可能存在误差，仅供参考！
             </div>
-            <div class="footer-market">数据来源 DexScreener</div>
+            <div class="footer-market">数据来源 DexScreener（服务端代理）</div>
         </div>
     </div>
 
@@ -331,7 +331,6 @@
 
     <script>
         const API = '/api';
-        const ART_ADDRESS = '0x7ff6eeb4020dad718a791cf5f6c3e72027666666';
         let curOrderStatus = 'wait';
         let allWithdrawData = [];
         let showingAll = false;
@@ -350,7 +349,7 @@
                     document.getElementById('homePage').classList.add('active');
                 } else if (page === 'cart') {
                     document.getElementById('cartPage').classList.add('active');
-                    loadArtPrice(); // 直接在前端请求
+                    loadArtPrice();
                 } else if (page === 'member') {
                     document.getElementById('memberPage').classList.add('active');
                     loadMemberData();
@@ -360,17 +359,17 @@
             })
         });
 
-        // 加载行情（前端直接请求 DexScreener，不再走后端）
+        // 加载行情（通过你自己的服务端代理，国内也能访问）
         async function loadArtPrice() {
             try {
-                const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${ART_ADDRESS}`);
-                const data = await res.json();
-                if (data.pairs && data.pairs.length > 0) {
-                    const pair = data.pairs[0];
-                    const price = parseFloat(pair.priceUsd);
-                    const change = parseFloat(pair.priceChange?.h24 || 0);
-                    const liquidity = pair.liquidity?.usd ? parseFloat(pair.liquidity.usd) : 0;
-                    const fdv = pair.fdv ? parseFloat(pair.fdv) : 0;
+                const res = await fetch('/api/art-price');
+                const json = await res.json();
+                if (json.code === 0 && json.data) {
+                    const d = json.data;
+                    const price = parseFloat(d.price);
+                    const change = parseFloat(d.change24h);
+                    const liquidity = parseFloat(d.liquidity);
+                    const fdv = parseFloat(d.fdv);
 
                     document.getElementById('artPrice').innerText = '$' + (price ? price.toFixed(6) : '0.000000');
                     const changeEl = document.getElementById('artChangeLabel');
@@ -436,7 +435,7 @@
             loadWithdrawLog();
         }
 
-        // 订单时间转换为北京时间显示
+        // 订单时间转换为北京时间
         async function loadOrders(status){
             curOrderStatus=status;
             document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
