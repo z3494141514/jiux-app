@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>酒蕴茶乡运营系统</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+    #status { color: #666; margin-bottom: 20px; }
+    #dataBox { border: 1px solid #ccc; padding: 15px; min-height: 150px; background: #f9f9f9; white-space: pre-wrap; }
+    button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>酒蕴茶乡运营系统</h1>
+  <div id="status">正在加载数据...</div>
+  <div id="dataBox"></div>
+  <br>
+  <button onclick="loadData()">刷新数据</button>
+  <button onclick="saveTestData()">写入测试数据</button>
+
+  <script>
+    const API_URL = "/api/data";
+    const statusEl = document.getElementById("status");
+    const dataBoxEl = document.getElementById("dataBox");
+
+    // 读取数据
+    async function loadData() {
+      statusEl.textContent = "加载中...";
+      try {
+        const res = await fetch(API_URL);
+        const json = await res.json();
+        const data = JSON.parse(json.data || "{}");
+        dataBoxEl.textContent = JSON.stringify(data, null, 2);
+        statusEl.textContent = "数据加载成功";
+      } catch (e) {
+        statusEl.textContent = "加载失败：" + e.message;
+        console.error(e);
+      }
+    }
+
+    // 写入测试数据
+    async function saveTestData() {
+      statusEl.textContent = "保存中...";
+      const testData = {
+        会员列表: ["张三", "李四", "王五"],
+        活动状态: "进行中",
+        最后更新: new Date().toLocaleString()
+      };
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: JSON.stringify(testData) })
+        });
+        statusEl.textContent = "测试数据已保存，刷新查看";
+        loadData();
+      } catch (e) {
+        statusEl.textContent = "保存失败：" + e.message;
+        console.error(e);
+      }
+    }
+
+    // 页面加载时自动读取
+    loadData();
+  </script>
+</body>
+</html>
