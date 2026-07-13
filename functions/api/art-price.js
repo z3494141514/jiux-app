@@ -1,53 +1,99 @@
 export async function onRequest({ request, env }) {
-  const RPC = 'https://bscrpc.com';
+  // 推荐 RPC 节点列表（优先使用快速的公共节点）
+  const RPC_LIST = [
+    'https://binance.llamarpc.com',
+    'https://rpc.ankr.com/bsc',
+    'https://bsc-dataseed1.binance.org',
+    'https://bsc-dataseed2.binance.org',
+    'https://bsc-dataseed3.binance.org',
+    'https://bsc-dataseed4.binance.org'
+  ];
+  
   const ART = '0x7ff6eeb4020dad718a791cf5f6c3e72027666666';
   const USDT = '0x55d398326f99059ff775485246999027b3197955';
+  const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
   const FACTORY = '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73';
 
-  try {
-    // 获取 ART/USDT 交易对地址
-    const pairUsdt = await getPairAddress(ART, USDT);
-    if (!pairUsdt) {
-      throw new Error('ART/USDT 交易对不存在');
-    }
+  let lastError = '';
 
-    // 获取储备量
-    const r = await getReserves(pairUsdt);
-    // 根据 PancakeSwap V2 排序规则，USDT (0x55d398...) < ART (0x7ff6eeb...)
-    // 所以 USDT 是 token0，ART 是 token1
-    const usdtReserve = Number(r.reserve0) / 1e18;
-    const artReserve  = Number(r.reserve1) / 1e18;
+  // 遍历 RPC 列表，直到成功
+  for (const RPC of RPC_LIST) {
+    try {
+      // 尝试获取 ART/USDT 交易对
+      const pairUsdt = await getPairAddress(RPC, ART, USDT);
+      if (pairUsdt) {
+        const r = await getReserves(RPC, pairUsdt);
+        // USDT (0x55d398...) < ART (0x7ff6eeb...)，所以 USDT 是 token0，ART 是 token1
+        const usdtReserve = Number(r.reserve0) / 1e18;
+        const artReserve  = Number(r.reserve1) / 1e18;
 
-    if (artReserve <= 0 || usdtReserve <= 0) {
-      throw new Error('流动性为空');
-    }
+        if (artReserve > 0 && usdtReserve > 0) {
+          const artPrice = (usdtReserve / artReserve).toFixed(6);
+          const tvl = (usdtReserve * 2).toFixed(2);
+          return jsonResponse(0, {
+            price: artPrice,
+            change24h: 0,
+            volume24h: 0,
+            liquidity: tvl,
+            fdv: 0,
+            pair: pairUsdt
+          });
+        }
+      }
 
-    // 计算 ART 的美元价格
-    const artPrice = (usdtReserve / artReserve).toFixed(6);
-    // 计算交易对 TVL（USDT 是美元稳定币）
-    const tvl = (usdtReserve * 2).toFixed(2);
+      // 回退到 ART/WBNB
+      const pairWbnb = await getPairAddress(RPC, ART, WBNB);
+      if (!pairWbnb) {
+        lastError = '交易对不存在';
+        continue;
+      }
 
-    return new Response(JSON.stringify({
-      code: 0,
-      data: {
-        price: artPrice,
+      const r2 = await getReserves(RPC, pairWbnb);
+      let artAmount, wbnbAmount;
+      // WBNB (0xbb4C...) < ART (0x7ff6eeb...)，所以 WBNB 是 token0
+      wbnbAmount = Number(r2.reserve0) / 1e18;
+      artAmount = Number(r2.reserve1) / 1e18;
+
+      if (artAmount <= 0 || wbnbAmount <= 0) {
+        lastError = '流动性为空';
+        continue;
+      }
+
+      const artPriceInBnb = wbnbAmount / artAmount;
+      const bnbPrice = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
+        .then(r => r.json())
+        .then(d => parseFloat(d.price));
+
+      if (isNaN(bnbPrice)) {
+        lastError = 'BNB价格获取失败';
+        continue;
+      }
+
+      const artPriceUsd = (artPriceInBnb * bnbPrice).toFixed(6);
+      return jsonResponse(0, {
+        price: artPriceUsd,
         change24h: 0,
         volume24h: 0,
-        liquidity: tvl,
-        fdv: 0,
-        pair: pairUsdt
-      }
-    }), { headers: { 'Content-Type': 'application/json' } });
+        liquidity: 0,
+        fdv: 0
+      });
 
-  } catch (e) {
-    return new Response(JSON.stringify({ code: 1, msg: e.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    } catch (e) {
+      lastError = e.message;
+      // 当前 RPC 失败，尝试下一个
+      continue;
+    }
   }
 
-  async function getPairAddress(tokenA, tokenB) {
-    const res = await fetch(RPC, {
+  // 所有 RPC 都失败了
+  return new Response(JSON.stringify({ code: 1, msg: '所有RPC节点均不可用: ' + lastError }), {
+    status: 500,
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  // 辅助函数
+  async function getPairAddress(rpc, tokenA, tokenB) {
+    const res = await fetch(rpc, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -63,13 +109,13 @@ export async function onRequest({ request, env }) {
       })
     }).then(r => r.json());
 
-    if (res.error) throw new Error('RPC错误');
+    if (res.error) throw new Error(res.error.message || 'RPC错误');
     if (!res.result || res.result === '0x0000000000000000000000000000000000000000') return null;
     return '0x' + res.result.slice(26);
   }
 
-  async function getReserves(pair) {
-    const res = await fetch(RPC, {
+  async function getReserves(rpc, pair) {
+    const res = await fetch(rpc, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -80,11 +126,17 @@ export async function onRequest({ request, env }) {
       })
     }).then(r => r.json());
 
-    if (res.error) throw new Error('获取储备失败');
+    if (res.error) throw new Error(res.error.message || '获取储备失败');
     const hex = res.result.startsWith('0x') ? res.result.slice(2) : res.result;
     return {
       reserve0: BigInt('0x' + hex.slice(0, 64)),
       reserve1: BigInt('0x' + hex.slice(64, 128))
     };
+  }
+
+  function jsonResponse(code, data) {
+    return new Response(JSON.stringify({ code, data }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
