@@ -303,11 +303,21 @@
             }, 2200);
         }
 
-        // 读取用户数据
+        // 读取用户数据 + 容错初始化（修复空数据报错）
         async function getUserData() {
             const res = await fetch(API);
             const json = await res.json();
-            return JSON.parse(json.data || '{"users":[]}');
+            let data = {};
+            try {
+                data = JSON.parse(json.data);
+            } catch (e) {
+                data = {};
+            }
+            // 强制保证用户数组存在
+            if (!Array.isArray(data.users)) {
+                data.users = [];
+            }
+            return data;
         }
 
         // 保存用户数据
@@ -332,7 +342,7 @@
             const user = userData.users.find(item => item.phone === account && item.pwd === pwd);
             if (user) {
                 showToast('登录成功');
-                // 登录成功后自行修改跳转地址
+                // 后续可修改为商城页面地址
                 setTimeout(() => location.reload(), 1500);
             } else {
                 showToast('账号或密码错误');
@@ -349,9 +359,10 @@
             if (pwd.length < 6) return showToast('密码不能少于6位');
 
             const userData = await getUserData();
+            // 校验手机号是否已注册
             if (userData.users.some(u => u.phone === phone)) return showToast('该手机号已注册');
 
-            // 匹配上级
+            // 匹配上级邀请人
             const parent = invite ? userData.users.find(u => u.phone === invite) : null;
 
             const newUser = {
