@@ -131,12 +131,19 @@
                             <option value="bean">酒豆支付</option>
                         </select>
                     </div>
-                    <div class="form-item"><label>所需最低等级</label><input type="number" id="goodsRequiredLevel" value="0" min="0"></div>
+                    <div class="form-item">
+                        <label>所需最低等级</label>
+                        <select id="goodsRequiredLevel"><option value="0">无限制</option></select>
+                    </div>
                     <div class="form-item">
                         <label>购买后升级至等级</label>
                         <select id="goodsUpgradeLevel"><option value="0">不升级</option></select>
                     </div>
                     <div class="form-item"><label>库存</label><input type="number" id="goodsStock" value="0" min="0"></div>
+                    <div class="form-item">
+                        <label>赠送算力倍数</label>
+                        <input type="number" id="goodsPowerRatio" step="0.1" placeholder="留空则使用全局设置">
+                    </div>
                 </div>
                 <div class="flex-row"><button class="btn-primary" onclick="saveGoods()">保存商品</button><button class="btn-gray" onclick="clearGoodsForm()">清空</button></div>
                 <hr style="margin:20px 0;"><table><thead><tr><th>ID</th><th>名称</th><th>价格</th><th>图片</th><th>库存</th><th>销量</th><th>状态</th><th>操作</th></tr></thead><tbody id="goodsTable"></tbody></table>
@@ -203,7 +210,7 @@
 
     <script>
         const API = '/api';
-        const ADMIN_KEY = 'jycx'; // 务必修改为你的实际密钥
+        const ADMIN_KEY = 'jycx'; // 务必改为你的实际密钥
 
         let allUsers = [], allOrders = [], allWithdraws = [], allRecharges = [], allReleases = [];
 
@@ -349,7 +356,7 @@
             showMsg('保存成功');
             clearLevelForm();
             loadLevels();
-            loadLevelOptions(); // 更新商品升级下拉
+            loadLevelOptions();
         }
 
         async function deleteLevel(id) {
@@ -359,18 +366,28 @@
             loadLevelOptions();
         }
 
-        // 加载等级下拉选项（商品管理用）
+        // 加载等级下拉选项（用于商品管理）
         async function loadLevelOptions() {
             const res = await fetch(`${API}/levels`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
             const data = await res.json();
             const list = data.list || [];
-            const sel = document.getElementById('goodsUpgradeLevel');
-            sel.innerHTML = '<option value="0">不升级</option>';
+            // 所需最低等级
+            const requiredSel = document.getElementById('goodsRequiredLevel');
+            requiredSel.innerHTML = '<option value="0">无限制</option>';
             list.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l.level;
                 opt.innerText = l.name + ' (级别' + l.level + ')';
-                sel.appendChild(opt);
+                requiredSel.appendChild(opt);
+            });
+            // 购买后升级至等级
+            const upgradeSel = document.getElementById('goodsUpgradeLevel');
+            upgradeSel.innerHTML = '<option value="0">不升级</option>';
+            list.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l.level;
+                opt.innerText = l.name + ' (级别' + l.level + ')';
+                upgradeSel.appendChild(opt);
             });
         }
 
@@ -435,6 +452,7 @@
             document.getElementById('goodsRequiredLevel').value = '0';
             document.getElementById('goodsUpgradeLevel').value = '0';
             document.getElementById('goodsStock').value = '0';
+            document.getElementById('goodsPowerRatio').value = '';
         }
 
         async function editGoods(id) {
@@ -452,17 +470,20 @@
                 document.getElementById('goodsStatus').value = g.status;
                 document.getElementById('goodsDesc').value = g.description || '';
                 document.getElementById('goodsPayType').value = g.pay_type || 'token';
-                document.getElementById('goodsRequiredLevel').value = g.required_level || 0;
-                // 加载等级下拉后，再设置值
+                // 下拉需先加载选项再赋值
                 await loadLevelOptions();
+                document.getElementById('goodsRequiredLevel').value = g.required_level || 0;
                 document.getElementById('goodsUpgradeLevel').value = g.upgrade_level || 0;
                 document.getElementById('goodsStock').value = g.stock || 0;
+                // 赠送算力倍数
+                document.getElementById('goodsPowerRatio').value = (g.power_ratio != null) ? g.power_ratio : '';
             }
         }
 
         async function saveGoods() {
             const id = document.getElementById('editId').value;
             const imageData = document.getElementById('goodsImageData').value;
+            const powerRatioVal = document.getElementById('goodsPowerRatio').value.trim();
             const body = {
                 id: id ? parseInt(id) : null,
                 name: document.getElementById('goodsName').value.trim(),
@@ -474,7 +495,8 @@
                 pay_type: document.getElementById('goodsPayType').value,
                 required_level: parseInt(document.getElementById('goodsRequiredLevel').value) || 0,
                 upgrade_level: parseInt(document.getElementById('goodsUpgradeLevel').value) || 0,
-                stock: parseInt(document.getElementById('goodsStock').value) || 0
+                stock: parseInt(document.getElementById('goodsStock').value) || 0,
+                power_ratio: powerRatioVal === '' ? null : parseFloat(powerRatioVal)
             };
             if (!body.name || !body.price || !body.image_url) return showMsg('请填写完整信息并选择图片');
             await fetch(`${API}/goods`, {
