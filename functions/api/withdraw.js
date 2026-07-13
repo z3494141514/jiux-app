@@ -8,7 +8,7 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ code: 1, msg: '参数错误，请填写完整信息' }), { status: 400 });
   }
 
-  // 检查用户酒豆余额并立即扣除
+  // 检查用户酒豆余额
   const user = await env.DB.prepare("SELECT bean FROM users WHERE phone = ?").bind(phone).first();
   if (!user) {
     return new Response(JSON.stringify({ code: 1, msg: '用户不存在' }), { status: 400 });
