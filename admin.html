@@ -243,6 +243,8 @@
                     <div class="form-item"><label>描述</label><input type="text" id="goodsDesc" placeholder="简短描述"></div>
                     <div class="form-item"><label>所需最低等级</label><input type="number" id="goodsRequiredLevel" value="0" min="0"></div>
                     <div class="form-item"><label>购买后升级至等级</label><input type="number" id="goodsUpgradeLevel" value="0" min="0"></div>
+                    <!-- 新增库存字段 -->
+                    <div class="form-item"><label>库存</label><input type="number" id="goodsStock" value="0" min="0"></div>
                 </div>
                 <div class="flex-row">
                     <button class="btn-primary" onclick="saveGoods()">保存商品</button>
@@ -250,7 +252,7 @@
                 </div>
                 <hr style="margin: 20px 0; border-color: #eee;">
                 <table>
-                    <thead><tr><th>ID</th><th>名称</th><th>价格</th><th>图片</th><th>状态</th><th>排序</th><th>操作</th></tr></thead>
+                    <thead><tr><th>ID</th><th>名称</th><th>价格</th><th>图片</th><th>库存</th><th>销量</th><th>状态</th><th>操作</th></tr></thead>
                     <tbody id="goodsTable"></tbody>
                 </table>
             </div>
@@ -325,9 +327,8 @@
 
     <script>
         const API = '/api';
-        const ADMIN_KEY = 'jycx'; // 替换为你的实际密钥
+        const ADMIN_KEY = 'jycx'; // 请替换为你的实际密钥
 
-        // 全局数据
         let allUsers = [], allOrders = [], allWithdraws = [], allRecharges = [], allReleases = [];
 
         // 导航切换
@@ -352,7 +353,6 @@
 
         function showMsg(msg) { alert(msg); }
 
-        // ---------- 数据初始化 ----------
         async function loadAllData() {
             try {
                 const res = await fetch(`${API}/admin`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
@@ -368,25 +368,29 @@
         }
 
         async function loadDashboard() {
-            const res = await fetch(`${API}/dashboard`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
-            const json = await res.json();
-            if (json.code === 0) {
-                document.getElementById('dashUsers').innerText = json.data.totalUsers || 0;
-                document.getElementById('dashTodayOrders').innerText = json.data.todayOrders || 0;
-                document.getElementById('dashRecharge').innerText = json.data.totalRecharge || 0;
-                document.getElementById('dashWithdraw').innerText = json.data.totalWithdraw || 0;
-            }
+            try {
+                const res = await fetch(`${API}/dashboard`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
+                const json = await res.json();
+                if (json.code === 0) {
+                    document.getElementById('dashUsers').innerText = json.data.totalUsers || 0;
+                    document.getElementById('dashTodayOrders').innerText = json.data.todayOrders || 0;
+                    document.getElementById('dashRecharge').innerText = json.data.totalRecharge || 0;
+                    document.getElementById('dashWithdraw').innerText = json.data.totalWithdraw || 0;
+                }
+            } catch (e) {}
         }
 
         async function loadConfig() {
-            const res = await fetch(`${API}/config`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
-            const data = await res.json();
-            if (data.config) {
-                document.getElementById('powerRatio').value = data.config.powerRatio || 2;
-                document.getElementById('releaseHour').value = data.config.releaseHour || 8;
-                document.getElementById('releaseRate').value = data.config.releaseRate || 0.05;
-                document.getElementById('assetToBeanRate').value = data.config.assetToBeanRate || 5;
-            }
+            try {
+                const res = await fetch(`${API}/config`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
+                const data = await res.json();
+                if (data.config) {
+                    document.getElementById('powerRatio').value = data.config.powerRatio || 2;
+                    document.getElementById('releaseHour').value = data.config.releaseHour || 8;
+                    document.getElementById('releaseRate').value = data.config.releaseRate || 0.05;
+                    document.getElementById('assetToBeanRate').value = data.config.assetToBeanRate || 5;
+                }
+            } catch (e) {}
         }
 
         async function saveConfig() {
@@ -499,14 +503,16 @@
                 html += `<tr>
                     <td>${g.id}</td><td>${g.name}</td><td>${g.price}</td>
                     <td><img src="${g.image_url}" width="50" style="border-radius:6px;"></td>
-                    <td>${g.status === 'active' ? '上架' : '下架'}</td><td>${g.sort}</td>
+                    <td>${g.stock || 0}</td>
+                    <td>${g.sales || 0}</td>
+                    <td>${g.status === 'active' ? '上架' : '下架'}</td>
                     <td>
                         <button class="btn-outline" onclick="editGoods(${g.id})">编辑</button>
                         <button class="btn-gray" onclick="deleteGoods(${g.id})">下架</button>
                     </td>
                 </tr>`;
             });
-            document.getElementById('goodsTable').innerHTML = html || '<tr><td colspan="7">暂无商品</td></tr>';
+            document.getElementById('goodsTable').innerHTML = html || '<tr><td colspan="8">暂无商品</td></tr>';
         }
 
         function clearGoodsForm() {
@@ -521,6 +527,7 @@
             document.getElementById('goodsDesc').value = '';
             document.getElementById('goodsRequiredLevel').value = '0';
             document.getElementById('goodsUpgradeLevel').value = '0';
+            document.getElementById('goodsStock').value = '0';
         }
 
         async function editGoods(id) {
@@ -539,6 +546,7 @@
                 document.getElementById('goodsDesc').value = g.description || '';
                 document.getElementById('goodsRequiredLevel').value = g.required_level || 0;
                 document.getElementById('goodsUpgradeLevel').value = g.upgrade_level || 0;
+                document.getElementById('goodsStock').value = g.stock || 0;
             }
         }
 
@@ -554,7 +562,8 @@
                 status: document.getElementById('goodsStatus').value,
                 description: document.getElementById('goodsDesc').value.trim(),
                 required_level: parseInt(document.getElementById('goodsRequiredLevel').value) || 0,
-                upgrade_level: parseInt(document.getElementById('goodsUpgradeLevel').value) || 0
+                upgrade_level: parseInt(document.getElementById('goodsUpgradeLevel').value) || 0,
+                stock: parseInt(document.getElementById('goodsStock').value) || 0
             };
             if (!body.name || !body.price || !body.image_url) return showMsg('请填写完整信息并选择图片');
             await fetch(`${API}/goods`, {
@@ -589,7 +598,6 @@
             let html = '';
             if (allUsers.length === 0) html = '<tr><td colspan="7">暂无数据</td></tr>';
             else allUsers.forEach(u => {
-                // 简单展示等级，由于 allUsers 可能不包含等级名称，暂用数字
                 html += `<tr><td>${u.phone}</td><td>${u.power}</td><td>${u.asset}</td><td>${u.bean}</td><td>${u.token}</td><td>${u.level || 0}</td><td>${u.create_time}</td></tr>`;
             });
             document.getElementById('userTable').innerHTML = html;
@@ -687,7 +695,7 @@
             document.getElementById('releaseLogTable').innerHTML = html;
         }
 
-        // 启动
+        // 初始化
         window.onload = loadAllData;
     </script>
 </body>
