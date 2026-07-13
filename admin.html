@@ -9,7 +9,6 @@
         body{background:#f5f7fa;padding:20px;}
         .container{max-width:1200px;margin:0 auto;}
         .header{background:#8c1c13;color:#fff;padding:16px 20px;border-radius:8px;margin-bottom:20px;}
-        /* 修复导航：默认黑字，选中红底白字 */
         .tab-box{display:flex;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:20px;flex-wrap:wrap;}
         .tab-item{padding:14px 20px;cursor:pointer;border:none;background:transparent;font-size:14px;color:#333;}
         .tab-item.active{background:#8c1c13;color:#fff;}
@@ -41,7 +40,6 @@
             <button class="tab-item" data-tab="releaseLog">算力释放日志</button>
         </div>
 
-        <!-- 1. 全局参数配置 -->
         <div class="panel active" id="panel-config">
             <h3>业务参数设置</h3>
             <p class="tip">修改后保存立即生效，影响全平台规则</p>
@@ -64,7 +62,6 @@
             <button onclick="saveConfig()">保存配置</button>
         </div>
 
-        <!-- 2. 会员管理 + 酒令充值 -->
         <div class="panel" id="panel-user">
             <h3>会员列表 & 酒令充值</h3>
             <p class="tip">选中会员，填写充值数量，点击充值即可增加用户酒令</p>
@@ -93,7 +90,6 @@
             </table>
         </div>
 
-        <!-- 3. 订单管理（修改订单状态） -->
         <div class="panel" id="panel-order">
             <h3>全部订单 & 状态修改</h3>
             <table>
@@ -111,7 +107,6 @@
             </table>
         </div>
 
-        <!-- 4. 提现审核（酒豆提现） -->
         <div class="panel" id="panel-withdraw">
             <h3>用户酒豆提现审核</h3>
             <table>
@@ -128,7 +123,6 @@
             </table>
         </div>
 
-        <!-- 5. 充值记录 -->
         <div class="panel" id="panel-rechargeLog">
             <h3>后台酒令充值记录</h3>
             <table>
@@ -143,7 +137,6 @@
             </table>
         </div>
 
-        <!-- 6. 算力释放日志 -->
         <div class="panel" id="panel-releaseLog">
             <h3>每日算力释放执行记录</h3>
             <table>
@@ -160,10 +153,10 @@
     </div>
 
     <script>
-        const API = "/api/data";
         let allData = {};
+        // 固定接口路径，适配网站线上环境
+        const apiUrl = "/api/data";
 
-        // Tab切换
         document.querySelectorAll('.tab-item').forEach(tab=>{
             tab.addEventListener('click',function(){
                 document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
@@ -171,7 +164,6 @@
                 let t = this.dataset.tab;
                 document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
                 document.getElementById('panel-'+t).classList.add('active');
-                // 切换面板时强制刷新数据
                 if(t==='user'){ loadUserSelect(); renderUser(); }
                 if(t==='order') renderOrder();
                 if(t==='withdraw') renderWithdraw();
@@ -180,27 +172,27 @@
             })
         })
 
-        // 加载全局数据
+        // 修复请求：极简兼容写法，去除多余配置
         async function loadData(){
             try{
-                let res = await fetch(API);
-                let json = await res.json();
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error("接口请求异常");
+                const json = await res.json();
                 allData = JSON.parse(json.data);
-                // 回填配置项
+
                 document.getElementById('powerRatio').value = allData.config.powerRatio;
                 document.getElementById('releaseHour').value = allData.config.releaseHour;
                 document.getElementById('releaseRate').value = allData.config.releaseRate;
                 document.getElementById('assetToBeanRate').value = allData.config.assetToBeanRate;
-                // 页面初始化渲染会员列表
+
                 loadUserSelect();
                 renderUser();
             }catch(e){
-                alert("数据加载失败，请检查接口 /api/data 是否正常部署");
+                alert("数据加载失败：" + e.message);
                 console.error(e);
             }
         }
 
-        // 保存全局配置
         async function saveConfig(){
             allData.config.powerRatio = parseFloat(document.getElementById('powerRatio').value);
             allData.config.releaseHour = parseInt(document.getElementById('releaseHour').value);
@@ -210,20 +202,17 @@
             alert("配置保存成功！");
         }
 
-        // 保存整份数据
         async function saveAllData(){
-            await fetch(API,{
+            await fetch(apiUrl,{
                 method:"POST",
-                headers:{"Content-Type":"application/json"},
                 body:JSON.stringify({data:JSON.stringify(allData)})
             })
         }
 
-        // 加载会员下拉选择框（充值用）
         function loadUserSelect(){
             let sel = document.getElementById('userSelect');
             sel.innerHTML = "";
-            if(!allData.users || allData.users.length === 0) return;
+            if(!allData.users) return;
             allData.users.forEach(u=>{
                 let opt = document.createElement('option');
                 opt.value = u.phone;
@@ -232,31 +221,23 @@
             })
         }
 
-        // 会员酒令充值
         async function userRecharge(){
             let phone = document.getElementById('userSelect').value;
             let num = parseInt(document.getElementById('rechargeNum').value);
             if(!num || num <= 0) return alert("请输入合法充值数量");
-
             let user = allData.users.find(u=>u.phone === phone);
             if(!user) return alert("会员不存在");
-
-            // 增加酒令
             user.token = (parseInt(user.token)||0) + num;
-
-            // 新增充值记录
             allData.rechargeLog.push({
                 phone: phone,
                 num: num,
                 time: new Date().toLocaleString()
             });
-
             await saveAllData();
             await loadData();
             alert("充值成功！");
         }
 
-        // 渲染会员列表
         function renderUser(){
             let html = "";
             if(!allData.users || allData.users.length === 0){
@@ -276,15 +257,14 @@
             document.getElementById('userTable').innerHTML = html;
         }
 
-        // 渲染订单 + 修改订单状态
         function renderOrder(){
             let html = "";
-            if(!allData.users || allData.users.length === 0){
+            if(!allData.users){
                 document.getElementById('orderTable').innerHTML = "<tr><td colspan='6'>暂无订单数据</td></tr>";
                 return;
             }
             allData.users.forEach(u=>{
-                if(!u.orderList || u.orderList.length === 0) return;
+                if(!u.orderList) return;
                 u.orderList.forEach((o,idx)=>{
                     let statusText = o.status==='wait'?'待发货':o.status==='send'?'已发货':'已收货';
                     html += `<tr>
@@ -308,7 +288,6 @@
             document.getElementById('orderTable').innerHTML = html;
         }
 
-        // 修改订单状态
         async function changeOrderStatus(phone,idx){
             let sel = document.getElementById(`orderSel_${phone}_${idx}`);
             let newStatus = sel.value;
@@ -321,15 +300,14 @@
             }
         }
 
-        // 渲染提现列表 & 审核操作
         function renderWithdraw(){
             let html = "";
-            if(!allData.withdrawLog || allData.withdrawLog.length === 0){
+            if(!allData.withdrawLog){
                 document.getElementById('withdrawTable').innerHTML = "<tr><td colspan='5'>暂无提现申请</td></tr>";
                 return;
             }
             allData.withdrawLog.forEach((item,idx)=>{
-                let statusText = item.status==='wait'?'待审核':item.status==='pass'?'已通过':item.status==='refuse'?'已拒绝':'';
+                let statusText = item.status==='wait'?'待审核':item.status==='pass'?'已通过':'已拒绝';
                 html += `<tr>
                     <td>${item.phone}</td>
                     <td>${item.beanNum}</td>
@@ -346,16 +324,12 @@
             document.getElementById('withdrawTable').innerHTML = html;
         }
 
-        // 提现审核
         async function auditWithdraw(idx,type){
             let item = allData.withdrawLog[idx];
             if(item.status !== 'wait') return;
-
             let user = allData.users.find(u=>u.phone === item.phone);
             if(!user) return;
-
             if(type === 'pass'){
-                // 审核通过：扣除用户对应酒豆
                 let bean = parseInt(user.bean)||0;
                 if(bean < item.beanNum){
                     alert("用户酒豆不足，无法通过");
@@ -364,19 +338,16 @@
                 user.bean = bean - item.beanNum;
                 item.status = "pass";
             }else{
-                // 拒绝：状态改为拒绝，不扣酒豆
                 item.status = "refuse";
             }
-
             await saveAllData();
             alert(type==='pass'?"审核通过":"已拒绝");
             renderWithdraw();
         }
 
-        // 渲染充值记录
         function renderRechargeLog(){
             let html = "";
-            if(!allData.rechargeLog || allData.rechargeLog.length === 0){
+            if(!allData.rechargeLog){
                 document.getElementById('rechargeLogTable').innerHTML = "<tr><td colspan='3'>暂无充值记录</td></tr>";
                 return;
             }
@@ -390,10 +361,9 @@
             document.getElementById('rechargeLogTable').innerHTML = html;
         }
 
-        // 渲染算力释放日志
         function renderReleaseLog(){
             let html = "";
-            if(!allData.releaseLog || allData.releaseLog.length === 0){
+            if(!allData.releaseLog){
                 document.getElementById('releaseLogTable').innerHTML = "<tr><td colspan='3'>暂无释放记录</td></tr>";
                 return;
             }
