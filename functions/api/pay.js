@@ -5,50 +5,75 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ code: 1, msg: '参数不全，请填写收货地址' }), { status: 400 });
   }
 
-  const goods = await env.DB.prepare("SELECT required_level, upgrade_level FROM goods WHERE id = ?").bind(goodsId).first();
+  // 获取商品信息（含支付方式）
+  const goods = await env.DB.prepare("SELECT required_level, upgrade_level, pay_type FROM goods WHERE id = ?").bind(goodsId).first();
   if (!goods) return new Response(JSON.stringify({ code: 1, msg: '商品不存在' }), { status: 400 });
 
-  const buyer = await env.DB.prepare("SELECT level, token, parent_phone FROM users WHERE phone = ?").bind(phone).first();
+  const buyer = await env.DB.prepare("SELECT level, token, bean, parent_phone FROM users WHERE phone = ?").bind(phone).first();
   if (!buyer) return new Response(JSON.stringify({ code: 1, msg: '用户不存在' }), { status: 400 });
 
   if (goods.required_level > buyer.level) {
     return new Response(JSON.stringify({ code: 3, msg: '您的会员等级不足' }), { status: 400 });
   }
 
-  if (buyer.token < price) {
-    return new Response(JSON.stringify({ code: 2, msg: '酒令余额不足' }), { status: 400 });
+  const payType = goods.pay_type || 'token';
+
+  // 根据支付方式检查余额
+  if (payType === 'token') {
+    if (buyer.token < price) {
+      return new Response(JSON.stringify({ code: 2, msg: '酒令余额不足' }), { status: 400 });
+    }
+  } else if (payType === 'bean') {
+    if ((buyer.bean || 0) < price) {
+      return new Response(JSON.stringify({ code: 2, msg: '酒豆余额不足' }), { status: 400 });
+    }
   }
 
   const cfg = await env.DB.prepare("SELECT value FROM config WHERE key = 'powerRatio'").first();
   const powerRatio = Number(cfg?.value) || 2;
   const addPower = Math.floor(price * powerRatio);
 
-  const statements = [
-    env.DB.prepare("UPDATE users SET token = token - ?, power = power + ? WHERE phone = ? AND token >= ?")
-      .bind(price, addPower, phone, price),
-    // 插入订单时包含地址
-    env.DB.prepare("INSERT INTO orders (phone, goods_id, price, address) VALUES (?, ?, ?, ?)")
-      .bind(phone, goodsId, price, address)
-  ];
+  const statements = [];
+
+  // 扣款语句
+  if (payType === 'token') {
+    statements.push(
+      env.DB.prepare("UPDATE users SET token = token - ?, power = power + ? WHERE phone = ? AND token >= ?")
+        .bind(price, addPower, phone, price)
+    );
+  } else if (payType === 'bean') {
+    statements.push(
+      env.DB.prepare("UPDATE users SET bean = bean - ?, power = power + ? WHERE phone = ? AND bean >= ?")
+        .bind(price, addPower, phone, price)
+    );
+  }
+
+  // 插入订单（附带支付方式）
+  statements.push(
+    env.DB.prepare("INSERT INTO orders (phone, goods_id, price, address, pay_type) VALUES (?, ?, ?, ?, ?)")
+      .bind(phone, goodsId, price, address, payType)
+  );
 
   if (goods.upgrade_level > buyer.level) {
     statements.push(env.DB.prepare("UPDATE users SET level = ? WHERE phone = ?").bind(goods.upgrade_level, phone));
   }
 
-  // 等级返利（酒令）
-  const buyerLevelInfo = await env.DB.prepare("SELECT reward_percent FROM member_levels WHERE level = ?").bind(buyer.level).first();
-  const rewardPercent = buyerLevelInfo?.reward_percent || 0;
-  if (rewardPercent > 0 && buyer.parent_phone) {
-    const rewardAmount = Math.floor(price * rewardPercent / 100);
-    if (rewardAmount > 0) {
-      statements.push(env.DB.prepare("UPDATE users SET token = token + ? WHERE phone = ?").bind(rewardAmount, buyer.parent_phone));
-      statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount) VALUES (?, ?, 1, ?)").bind(phone, buyer.parent_phone, rewardAmount));
-      const parent1 = await env.DB.prepare("SELECT parent_phone FROM users WHERE phone = ?").bind(buyer.parent_phone).first();
-      if (parent1 && parent1.parent_phone) {
-        const reward2 = Math.floor(price * rewardPercent / 200);
-        if (reward2 > 0) {
-          statements.push(env.DB.prepare("UPDATE users SET token = token + ? WHERE phone = ?").bind(reward2, parent1.parent_phone));
-          statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount) VALUES (?, ?, 2, ?)").bind(phone, parent1.parent_phone, reward2));
+  // 等级返利（酒令）—— 只有支付方式为酒令时才可能有返利
+  if (payType === 'token') {
+    const buyerLevelInfo = await env.DB.prepare("SELECT reward_percent FROM member_levels WHERE level = ?").bind(buyer.level).first();
+    const rewardPercent = buyerLevelInfo?.reward_percent || 0;
+    if (rewardPercent > 0 && buyer.parent_phone) {
+      const rewardAmount = Math.floor(price * rewardPercent / 100);
+      if (rewardAmount > 0) {
+        statements.push(env.DB.prepare("UPDATE users SET token = token + ? WHERE phone = ?").bind(rewardAmount, buyer.parent_phone));
+        statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount) VALUES (?, ?, 1, ?)").bind(phone, buyer.parent_phone, rewardAmount));
+        const parent1 = await env.DB.prepare("SELECT parent_phone FROM users WHERE phone = ?").bind(buyer.parent_phone).first();
+        if (parent1 && parent1.parent_phone) {
+          const reward2 = Math.floor(price * rewardPercent / 200);
+          if (reward2 > 0) {
+            statements.push(env.DB.prepare("UPDATE users SET token = token + ? WHERE phone = ?").bind(reward2, parent1.parent_phone));
+            statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount) VALUES (?, ?, 2, ?)").bind(phone, parent1.parent_phone, reward2));
+          }
         }
       }
     }
