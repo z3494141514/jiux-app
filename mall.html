@@ -390,21 +390,26 @@
                 fetchArtPrice();
                 if (artInterval) clearInterval(artInterval);
                 artInterval = setInterval(fetchArtPrice, 30000);
-            }, 200);
+            }, 500); // 增加延迟
         }
 
-        function initChart() {
+        function initChart(retryCount = 0) {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             const wrapper = canvas.parentNode;
             const w = wrapper.clientWidth;
             if (w === 0) {
-                setTimeout(initChart, 100);
+                if (retryCount < 10) {
+                    setTimeout(() => initChart(retryCount + 1), 200);
+                }
                 return;
             }
             canvas.width = w;
             canvas.height = 220;
-            if (priceHistory.length > 0) drawChart();
+            console.log('Canvas 尺寸已设置:', w, 220);
+            if (priceHistory.length > 1) {
+                drawChart();
+            }
         }
 
         window.addEventListener('resize', () => {
@@ -435,7 +440,9 @@
                     priceHistory.push(price);
                     if (priceHistory.length > 30) priceHistory.shift();
 
-                    initChart(); // 重设画布并绘制
+                    console.log('价格历史长度:', priceHistory.length, '最新价格:', price);
+                    // 强制重新校准尺寸并绘制
+                    initChart();
                 }
             } catch (err) {
                 console.error('行情获取失败', err);
