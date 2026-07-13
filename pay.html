@@ -16,7 +16,6 @@
             --main-light: #b83030;
             --text-dark: #222;
             --text-gray: #666;
-            --text-light: #999;
             --bg-page: #f8f3ed;
             --white: #ffffff;
             --shadow: 0 8px 24px rgba(140, 28, 19, 0.12);
@@ -96,22 +95,19 @@
         <div class="row"><span>应付金额(酒令)</span><span id="price">0</span></div>
         <div class="row"><span>当前酒令余额</span><span id="token">0</span></div>
         <div class="row"><span>本次赠送算力</span><span id="addPower">0</span></div>
-
         <div class="tip">
             说明：使用酒令完成支付，支付成功自动进入【待发货】订单；<br>
             每笔订单赠送 支付金额 × <span id="ratio">2</span> 倍算力。
         </div>
-
         <div class="btn-group">
             <button class="btn cancel" onclick="goBack()">取消</button>
             <button class="btn submit" onclick="doPay()">确认支付</button>
         </div>
     </div>
-
     <div class="toast" id="toast"></div>
 
     <script>
-        const API = "/api/data";
+        const API_BASE = "/api";
         let goodsId = 0;
         let payPrice = 0;
         let currUser = null;
@@ -127,22 +123,17 @@
             }, 2000);
         }
 
-        function goBack() {
-            location.href = "mall.html";
-        }
+        function goBack() { location.href = "mall.html"; }
 
-        async function loadConfig(){
+        async function loadConfig() {
             try {
-                let res = await fetch(API);
-                if (!res.ok) throw new Error("接口请求失败");
-                let json = await res.json();
-                let allData = JSON.parse(json.data);
-                powerRatio = allData.config.powerRatio;
-                document.getElementById('ratio').innerText = powerRatio;
-            } catch (err) {
-                showToast("服务器连接异常");
-                console.error(err);
-            }
+                const res = await fetch(`${API_BASE}/config`);
+                const data = await res.json();
+                if (data.config) {
+                    powerRatio = Number(data.config.powerRatio) || 2;
+                    document.getElementById('ratio').innerText = powerRatio;
+                }
+            } catch (e) {}
         }
 
         window.onload = async function() {
@@ -159,59 +150,24 @@
 
             document.getElementById('gid').innerText = goodsId;
             document.getElementById('price').innerText = payPrice;
-            document.getElementById('token').innerText = currUser.token;
+            document.getElementById('token').innerText = currUser.token || 0;
             document.getElementById('addPower').innerText = (payPrice * powerRatio).toFixed(0);
         }
 
         async function doPay() {
-            const userToken = parseInt(currUser.token) || 0;
-            if(userToken < payPrice) {
-                showToast('酒令余额不足，无法支付');
-                return;
-            }
-
-            currUser.token = userToken - payPrice;
-            const addPower = payPrice * powerRatio;
-            currUser.power = parseInt(currUser.power || 0) + addPower;
-            if(!currUser.orderList) currUser.orderList = [];
-            const order = {
-                goodsId: goodsId,
-                price: payPrice,
-                time: new Date().toLocaleString(),
-                status: "wait"
-            };
-            currUser.orderList.push(order);
-
-            localStorage.setItem("loginUser", JSON.stringify(currUser));
-            await syncUserData();
-
-            showToast('支付成功！订单已进入待发货', ()=>{
-                location.href = "mall.html#member";
+            const res = await fetch(`${API_BASE}/pay`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: currUser.phone, goodsId, price: payPrice })
             });
-        }
-
-        async function syncUserData() {
-            try {
-                const res = await fetch("/api/data");
-                const json = await res.json();
-                let allData = {};
-                try {
-                    allData = JSON.parse(json.data);
-                } catch(e) {
-                    allData = { users: [] };
-                }
-                const idx = allData.users.findIndex(u => u.phone === currUser.phone);
-                if(idx > -1) {
-                    allData.users[idx] = currUser;
-                }
-                await fetch("/api/data", {
-                    method: "POST",
-                    headers: { "Content-Type":"application/json" },
-                    body: JSON.stringify({ data: JSON.stringify(allData) })
+            const data = await res.json();
+            if (data.code === 0) {
+                localStorage.setItem('loginUser', JSON.stringify(data.user));
+                showToast('支付成功！订单已进入待发货', () => {
+                    location.href = "mall.html";
                 });
-            } catch (err) {
-                showToast("同步订单失败，请稍后查看");
-                console.error(err);
+            } else {
+                showToast(data.msg || '支付失败');
             }
         }
     </script>

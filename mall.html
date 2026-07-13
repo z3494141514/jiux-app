@@ -11,7 +11,6 @@
             box-sizing: border-box;
             font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
         }
-
         :root {
             --main: #8c1c13;
             --main-light: #b83030;
@@ -22,7 +21,6 @@
             --white: #ffffff;
             --shadow: 0 8px 24px rgba(140, 28, 19, 0.12);
         }
-
         body {
             background-color: var(--bg-page);
             color: var(--text-dark);
@@ -30,7 +28,6 @@
             padding-bottom: 70px;
             overflow-x: hidden;
         }
-
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
@@ -43,15 +40,6 @@
             from { opacity: 0; transform: scale(0.94); }
             to { opacity: 1; transform: scale(1); }
         }
-        @keyframes slideRight {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .animate-fade-up { animation: fadeInUp 0.7s ease forwards; }
-        .animate-scale { animation: scaleIn 0.6s ease forwards; }
-        .animate-fade { animation: fadeIn 0.8s ease forwards; }
-
         .header {
             position: fixed;
             top: 0;
@@ -74,16 +62,9 @@
             padding: 0 20px;
             font-size: 14px;
         }
-        .search-box:focus {
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
-        }
-
         .banner {
             margin-top: 52px;
             width: 100%;
-            overflow: hidden;
-            position: relative;
             padding: 12px;
         }
         .banner-wrap {
@@ -94,16 +75,14 @@
         .banner-list {
             display: flex;
             width: 300%;
-            transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: transform 0.5s;
         }
         .banner-item { width: 100%; }
         .banner-item img { width: 100%; display: block; }
-
         .goods-head {
             margin: 0 16px 12px;
             display: flex;
             align-items: center;
-            animation: slideRight 0.6s ease forwards;
         }
         .goods-line {
             width: 4px;
@@ -115,9 +94,7 @@
         .goods-title {
             font-size: 16px;
             font-weight: 500;
-            color: var(--text-dark);
         }
-
         .goods-container {
             padding: 0 12px;
             display: flex;
@@ -130,7 +107,7 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: var(--shadow);
-            transition: all 0.35s ease;
+            transition: all 0.35s;
             animation: scaleIn 0.6s ease forwards;
             opacity: 0;
         }
@@ -138,15 +115,11 @@
         .goods-card:nth-child(2) { animation-delay: 0.2s; }
         .goods-card:nth-child(3) { animation-delay: 0.3s; }
         .goods-card:nth-child(4) { animation-delay: 0.4s; }
-        .goods-card:active {
-            transform: translateY(-4px) scale(0.98);
-            box-shadow: 0 12px 30px rgba(140, 28, 19, 0.18);
-        }
+        .goods-card:active { transform: translateY(-4px) scale(0.98); }
         .goods-img { width: 100%; display: block; }
         .goods-info { padding: 14px; }
         .goods-name {
             font-size: 13px;
-            color: var(--text-dark);
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -170,14 +143,8 @@
             border-radius: 10px;
             text-decoration: none;
             font-size: 14px;
-            transition: all 0.3s ease;
             box-shadow: 0 4px 10px rgba(140, 28, 19, 0.2);
         }
-        .buy-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 6px rgba(140, 28, 19, 0.15);
-        }
-
         .page { display: none; }
         .page.active { display: block; }
 
@@ -186,12 +153,8 @@
             background: linear-gradient(135deg, var(--main), var(--main-light));
             padding: 35px 20px 25px;
             color: #fff;
-            animation: fadeIn 0.8s ease forwards;
         }
-        .member-top {
-            display: flex;
-            align-items: center;
-        }
+        .member-top { display: flex; align-items: center; }
         .avatar-box {
             width: 78px;
             height: 78px;
@@ -201,25 +164,13 @@
             box-shadow: 0 6px 16px rgba(0,0,0,0.2);
             margin-right: 18px;
         }
-        .avatar-box img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .member-desc p {
-            margin: 6px 0;
-            font-size: 14px;
-            opacity: 0.95;
-        }
+        .avatar-box img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
         .asset-panel {
             margin: 15px 12px;
             background: var(--white);
             border-radius: 20px;
             padding: 22px;
             box-shadow: var(--shadow);
-            animation: fadeInUp 0.7s ease 0.2s forwards;
-            opacity: 0;
         }
         .asset-row {
             display: flex;
@@ -229,24 +180,21 @@
             font-size: 14px;
         }
         .asset-row:last-child { border: none; }
-        .btn-row{display:flex;gap:10px;margin-top:12px;}
-        .exchange-btn,.withdraw-btn {
-            flex:1;
-            height:38px;
-            background:#8c1c13;
-            color:#fff;
-            border:none;
-            border-radius:10px;
+        .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+        .exchange-btn, .withdraw-btn {
+            flex: 1;
+            height: 38px;
+            background: #8c1c13;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
         }
-
         .order-module {
             margin: 15px 12px;
             background: var(--white);
             border-radius: 20px;
             padding: 20px;
             box-shadow: var(--shadow);
-            animation: fadeInUp 0.7s ease 0.3s forwards;
-            opacity: 0;
         }
         .order-tab {
             display: flex;
@@ -259,16 +207,10 @@
             flex: 1;
             text-align: center;
             line-height: 40px;
-            font-size: 14px;
             color: var(--text-gray);
-            position: relative;
-            z-index: 2;
-            transition: color 0.3s ease;
+            transition: color 0.3s;
         }
-        .order-tab-item.active {
-            color: var(--main);
-            font-weight: 500;
-        }
+        .order-tab-item.active { color: var(--main); font-weight: 500; }
         .tab-line {
             position: absolute;
             bottom: 0;
@@ -277,19 +219,10 @@
             height: 3px;
             background: linear-gradient(90deg, var(--main), var(--main-light));
             border-radius: 3px;
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            z-index: 1;
+            transition: transform 0.4s;
         }
-        .order-empty {
-            text-align: center;
-            color: var(--text-light);
-            padding: 20px 0;
-        }
-        .order-item {
-            padding: 10px 0;
-            border-bottom: 1px solid #f5f5f5;
-        }
-
+        .order-empty { text-align: center; color: var(--text-light); padding: 20px 0; }
+        .order-item { padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
         .logout {
             width: calc(100% - 24px);
             margin: 25px 12px;
@@ -299,22 +232,12 @@
             border-radius: 14px;
             font-size: 15px;
             color: var(--text-gray);
-            transition: all 0.3s ease;
         }
-        .logout:active { background: #e4d9cc; }
-
         .cart-empty-wrap {
             margin-top: 80px;
             text-align: center;
             color: var(--text-light);
-            animation: fadeIn 0.8s ease forwards;
         }
-        .cart-empty-icon {
-            font-size: 60px;
-            margin-bottom: 15px;
-            opacity: 0.6;
-        }
-
         .footer-tab {
             position: fixed;
             bottom: 0;
@@ -323,7 +246,6 @@
             height: 62px;
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             display: flex;
             border-top: 1px solid #f0e9e2;
             box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
@@ -334,12 +256,10 @@
             text-align: center;
             padding-top: 8px;
             color: var(--text-gray);
-            transition: color 0.3s ease;
         }
         .footer-item.active { color: var(--main); }
         .footer-icon { font-size: 22px; display: block; margin-bottom: 4px; }
         .footer-text { font-size: 12px; }
-
         .toast {
             position: fixed;
             left: 50%;
@@ -349,25 +269,20 @@
             color: #fff;
             padding: 14px 28px;
             border-radius: 14px;
-            font-size: 14px;
             z-index: 9999;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
             pointer-events: none;
         }
-        .toast.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        .mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9998;display:none;}
-        .pop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:85%;max-width:340px;background:#fff;border-radius:16px;padding:20px;z-index:9999;display:none;}
-        .pop h4{text-align:center;margin-bottom:15px;color:#8c1c13;}
-        .pop input{width:100%;height:40px;padding:0 10px;border:1px solid #ddd;border-radius:8px;margin-bottom:15px;}
-        .pop .btn-group{display:flex;gap:10px;}
-        .pop button{flex:1;height:40px;border:none;border-radius:8px;}
-        .pop .cancel{background:#eee;color:#333;}
-        .pop .submit{background:#8c1c13;color:#fff;}
+        .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .mask { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998; display:none; }
+        .pop { position: fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:85%; max-width:340px; background:#fff; border-radius:16px; padding:20px; z-index:9999; display:none; }
+        .pop h4 { text-align:center; margin-bottom:15px; color:#8c1c13; }
+        .pop input { width:100%; height:40px; padding:0 10px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px; }
+        .pop .btn-group { display:flex; gap:10px; }
+        .pop button { flex:1; height:40px; border:none; border-radius:8px; }
+        .pop .cancel { background:#eee; color:#333; }
+        .pop .submit { background:#8c1c13; color:#fff; }
     </style>
 </head>
 <body>
@@ -385,18 +300,16 @@
                 </div>
             </div>
         </div>
-
         <div class="goods-head">
             <span class="goods-line"></span>
             <span class="goods-title">甄选好物 · 人气推荐</span>
         </div>
-
         <div class="goods-container">
             <div class="goods-card">
                 <img class="goods-img" src="https://picsum.photos/320/240?goods01">
                 <div class="goods-info">
                     <div class="goods-name">陈年酱香纯粮白酒 窖藏500ml</div>
-                    <div class="goods-price" data-price="298">¥ 298.00</div>
+                    <div class="goods-price">¥ 298.00</div>
                     <a href="javascript:goPay(1,298)" class="buy-btn">立即购买</a>
                 </div>
             </div>
@@ -404,7 +317,7 @@
                 <img class="goods-img" src="https://picsum.photos/320/240?goods02">
                 <div class="goods-info">
                     <div class="goods-name">明前高山云雾绿茶 春茶250g</div>
-                    <div class="goods-price" data-price="88">¥ 88.00</div>
+                    <div class="goods-price">¥ 88.00</div>
                     <a href="javascript:goPay(2,88)" class="buy-btn">立即购买</a>
                 </div>
             </div>
@@ -412,7 +325,7 @@
                 <img class="goods-img" src="https://picsum.photos/320/240?goods03">
                 <div class="goods-info">
                     <div class="goods-name">烟酒茶组合高端礼盒 送礼首选</div>
-                    <div class="goods-price" data-price="399">¥ 399.00</div>
+                    <div class="goods-price">¥ 399.00</div>
                     <a href="javascript:goPay(3,399)" class="buy-btn">立即购买</a>
                 </div>
             </div>
@@ -420,7 +333,7 @@
                 <img class="goods-img" src="https://picsum.photos/320/240?goods04">
                 <div class="goods-info">
                     <div class="goods-name">52度浓香型老酒 纯粮酿造</div>
-                    <div class="goods-price" data-price="168">¥ 168.00</div>
+                    <div class="goods-price">¥ 168.00</div>
                     <a href="javascript:goPay(4,168)" class="buy-btn">立即购买</a>
                 </div>
             </div>
@@ -447,7 +360,6 @@
                 </div>
             </div>
         </div>
-
         <div class="asset-panel">
             <div class="asset-row"><span>总算力</span><span id="powerVal">0</span></div>
             <div class="asset-row"><span>数字资产</span><span id="assetVal">0.00</span></div>
@@ -458,7 +370,6 @@
                 <button class="withdraw-btn" onclick="openWithdrawPop()">酒豆提现</button>
             </div>
         </div>
-
         <div class="order-module">
             <div class="order-tab">
                 <div class="order-tab-item active" data-order="wait">待发货</div>
@@ -470,7 +381,6 @@
                 <div class="order-empty">暂无相关订单</div>
             </div>
         </div>
-
         <button class="logout" onclick="logout()">退出登录</button>
     </div>
 
@@ -498,14 +408,10 @@
             <button class="submit" onclick="submitWithdraw()">提交申请</button>
         </div>
     </div>
-
     <div class="toast" id="toast"></div>
 
     <script>
-        const API = "/api/data";
-        let globalConfig = {};
-        let loginUser = null;
-
+        const API_BASE = "/api";
         let bannerIndex = 0;
         const bannerList = document.getElementById('bannerList');
         function autoBanner() {
@@ -522,156 +428,58 @@
             setTimeout(() => toast.classList.remove('show'), 2200);
         }
 
-        async function loadConfigAndRelease() {
-            try {
-                let res = await fetch(API);
-                if (!res.ok) throw new Error("接口失败");
-                let json = await res.json();
-                let allData = JSON.parse(json.data);
-                globalConfig = allData.config;
-                await doDailyRelease(allData);
-            } catch (err) {
-                showToast("服务器连接失败");
-                console.error(err);
-            }
-        }
-
-        async function doDailyRelease(allData) {
-            const now = new Date();
-            const todayStr = now.toLocaleDateString();
-            const nowHour = now.getHours();
-            const releaseHour = globalConfig.releaseHour;
-            const rate = globalConfig.releaseRate;
-
-            let todayLog = allData.releaseLog.find(x => x.date === todayStr);
-            if (todayLog) return;
-            if (nowHour < releaseHour) return;
-
-            let count = 0;
-            allData.users.forEach(user => {
-                let power = parseFloat(user.power) || 0;
-                if (power <= 0) return;
-                let addAsset = power * rate;
-                let asset = parseFloat(user.asset) || 0;
-                user.asset = (asset + addAsset).toFixed(2);
-                count++;
-            });
-
-            allData.releaseLog.push({
-                date: todayStr,
-                userCount: count,
-                fullTime: now.toLocaleString()
-            });
-
-            try {
-                await fetch(API, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ data: JSON.stringify(allData) })
-                });
-            } catch (err) {
-                console.error(err);
-            }
-            refreshLocalUser();
-        }
-
         async function refreshLocalUser() {
-            try {
-                let res = await fetch(API);
-                let json = await res.json();
-                let allData = JSON.parse(json.data);
-                let userStr = localStorage.getItem("loginUser");
-                if(!userStr) return;
-                let u = JSON.parse(userStr);
-                let newUser = allData.users.find(x => x.phone === u.phone);
-                if(newUser) localStorage.setItem("loginUser", JSON.stringify(newUser));
-            } catch (e) {
-                console.error(e);
+            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
+            if (!user.phone) return;
+            const res = await fetch(`${API_BASE}/user?phone=${user.phone}`);
+            const data = await res.json();
+            if (data.code === 0) {
+                localStorage.setItem("loginUser", JSON.stringify(data.user));
             }
+        }
+
+        async function triggerRelease() {
+            try { await fetch(`${API_BASE}/release`); } catch(e) {}
         }
 
         async function assetToBean() {
-            let userStr = localStorage.getItem("loginUser");
-            if(!userStr) return showToast("请先登录");
-            let user = JSON.parse(userStr);
-            let asset = parseFloat(user.asset) || 0;
-            if(asset <= 0) {
-                showToast("暂无数字资产可兑换");
-                return;
-            }
-            let rate = globalConfig.assetToBeanRate;
-            let addBean = Math.floor(asset * rate);
-            user.asset = "0.00";
-            user.bean = (parseInt(user.bean) || 0) + addBean;
-
-            try {
-                let res = await fetch(API);
-                let json = await res.json();
-                let allData = JSON.parse(json.data);
-                let idx = allData.users.findIndex(x=>x.phone === user.phone);
-                if(idx > -1) allData.users[idx] = user;
-                await fetch(API,{
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({data:JSON.stringify(allData)})
-                });
-                localStorage.setItem("loginUser", JSON.stringify(user));
+            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
+            if (!user.phone) return showToast("请先登录");
+            const res = await fetch(`${API_BASE}/asset-to-bean`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: user.phone })
+            });
+            const data = await res.json();
+            showToast(data.msg || "操作完成");
+            if (data.code === 0) {
+                await refreshLocalUser();
                 loadMemberData();
-                showToast(`兑换成功！获得 ${addBean} 酒豆`);
-            } catch (err) {
-                showToast("兑换失败");
-                console.error(err);
             }
         }
 
-        function openWithdrawPop(){
+        function openWithdrawPop() {
             document.getElementById('mask').style.display = 'block';
             document.getElementById('withdrawPop').style.display = 'block';
             document.getElementById('withdrawNum').value = '';
         }
-        function closeWithdrawPop(){
+        function closeWithdrawPop() {
             document.getElementById('mask').style.display = 'none';
             document.getElementById('withdrawPop').style.display = 'none';
         }
 
-        async function submitWithdraw(){
-            let num = parseInt(document.getElementById('withdrawNum').value);
-            if(!num || num <= 0){
-                showToast("请输入合法提现数量");
-                return;
-            }
-            let userStr = localStorage.getItem("loginUser");
-            if(!userStr) return showToast("请登录");
-            let user = JSON.parse(userStr);
-            let bean = parseInt(user.bean)||0;
-            if(bean < num){
-                showToast("酒豆余额不足");
-                return;
-            }
-
-            try {
-                let res = await fetch(API);
-                let json = await res.json();
-                let allData = JSON.parse(json.data);
-
-                allData.withdrawLog.push({
-                    phone: user.phone,
-                    beanNum: num,
-                    applyTime: new Date().toLocaleString(),
-                    status: "wait"
-                });
-
-                await fetch(API,{
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({data:JSON.stringify(allData)})
-                });
-                closeWithdrawPop();
-                showToast("提现申请已提交，请等待后台审核");
-            } catch (err) {
-                showToast("提交失败");
-                console.error(err);
-            }
+        async function submitWithdraw() {
+            const num = parseInt(document.getElementById('withdrawNum').value);
+            if (!num || num <= 0) return showToast("请输入合法数量");
+            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
+            const res = await fetch(`${API_BASE}/withdraw`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: user.phone, beanNum: num })
+            });
+            const data = await res.json();
+            showToast(data.msg || "提交失败");
+            closeWithdrawPop();
         }
 
         const footerItems = document.querySelectorAll('.footer-item');
@@ -681,7 +489,7 @@
                 let pageType = this.dataset.page;
                 footerItems.forEach(n => n.classList.remove('active'));
                 this.classList.add('active');
-                pages.forEach(p=>p.classList.remove('active'));
+                pages.forEach(p => p.classList.remove('active'));
                 if (pageType === 'home') {
                     document.getElementById('homePage').classList.add('active');
                 } else if (pageType === 'cart') {
@@ -713,10 +521,9 @@
         function loadMemberData() {
             let user = JSON.parse(localStorage.getItem("loginUser") || "{}");
             if (!user.phone) return;
-            loginUser = user;
             document.getElementById('memberInfo').innerHTML = `
                 <p>会员ID：${user.phone}</p>
-                <p>专属邀请码：${user.inviteCode || user.phone}</p>
+                <p>专属邀请码：${user.invite_code || user.phone}</p>
             `;
             document.getElementById('powerVal').innerText = user.power || "0";
             document.getElementById('assetVal').innerText = user.asset || "0.00";
@@ -725,11 +532,13 @@
             switchOrderTab(0);
         }
 
-        function renderOrder(tabIndex) {
-            let user = JSON.parse(localStorage.getItem("loginUser") || "{}");
-            const orderList = user.orderList || [];
-            let type = ['wait','send','done'][tabIndex];
-            let filterList = orderList.filter(item => item.status === type);
+        async function renderOrder(tabIndex) {
+            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
+            const res = await fetch(`${API_BASE}/user-orders?phone=${user.phone}`);
+            const data = await res.json();
+            const orders = data.orders || [];
+            const type = ['wait','send','done'][tabIndex];
+            const filterList = orders.filter(o => o.status === type);
             const content = document.getElementById('orderContent');
             if (filterList.length === 0) {
                 content.innerHTML = '<div class="order-empty">暂无相关订单</div>';
@@ -737,15 +546,16 @@
             }
             let html = '';
             filterList.forEach(item => {
+                const statusText = item.status === 'wait' ? '待发货' : (item.status === 'send' ? '已发货' : '已收货');
                 html += `
                     <div class="order-item">
-                        <div>商品编号：${item.goodsId}</div>
+                        <div>商品编号：${item.goods_id}</div>
                         <div>支付金额：¥${item.price}</div>
-                        <div>下单时间：${item.time}</div>
-                        <div>状态：${item.status==='wait'?'待发货':item.status==='send'?'已发货':'已收货'}</div>
+                        <div>下单时间：${item.create_time}</div>
+                        <div>状态：${statusText}</div>
                     </div>
                 `;
-            })
+            });
             content.innerHTML = html;
         }
 
@@ -761,7 +571,9 @@
                 location.href = "index.html";
                 return;
             }
-            await loadConfigAndRelease();
+            await triggerRelease();
+            await refreshLocalUser();
+            loadMemberData();
         }
     </script>
 </body>

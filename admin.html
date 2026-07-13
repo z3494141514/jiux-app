@@ -95,6 +95,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th>订单ID</th>
                         <th>会员</th>
                         <th>商品编号</th>
                         <th>金额</th>
@@ -112,6 +113,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th>申请ID</th>
                         <th>会员</th>
                         <th>提现酒豆数量</th>
                         <th>申请时间</th>
@@ -144,7 +146,7 @@
                     <tr>
                         <th>释放日期</th>
                         <th>参与用户数</th>
-                        <th>执行完整时间</th>
+                        <th>执行时间</th>
                     </tr>
                 </thead>
                 <tbody id="releaseLogTable"></tbody>
@@ -153,241 +155,236 @@
     </div>
 
     <script>
-        const API = "/api/data";
-        let allData = {};
+        const API_BASE = "/api";
+        // ⚠️ 务必修改为你在 Cloudflare 环境变量中设置的 ADMIN_KEY
+        const ADMIN_KEY = 'jycx';
 
-        document.querySelectorAll('.tab-item').forEach(tab=>{
-            tab.addEventListener('click',function(){
-                document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+        let allUsers = [], allOrders = [], allWithdraws = [], allRecharges = [], allReleases = [];
+        let config = {};
+
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', function () {
+                document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
                 let t = this.dataset.tab;
-                document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-                document.getElementById('panel-'+t).classList.add('active');
-                if(t==='user'){ loadUserSelect(); renderUser(); }
-                if(t==='order') renderOrder();
-                if(t==='withdraw') renderWithdraw();
-                if(t==='rechargeLog') renderRechargeLog();
-                if(t==='releaseLog') renderReleaseLog();
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + t).classList.add('active');
+                if (t === 'user') renderUser();
+                if (t === 'order') renderOrder();
+                if (t === 'withdraw') renderWithdraw();
+                if (t === 'rechargeLog') renderRechargeLog();
+                if (t === 'releaseLog') renderReleaseLog();
             })
-        })
+        });
 
-        async function loadData(){
+        async function loadAllData() {
             try {
-                let res = await fetch(API);
-                if (!res.ok) throw new Error("接口响应异常");
-                let json = await res.json();
-                allData = JSON.parse(json.data);
+                const res = await fetch(`${API_BASE}/admin`, {
+                    headers: { 'X-Admin-Key': ADMIN_KEY }
+                });
+                const json = await res.json();
+                if (json.code !== 0) {
+                    alert("鉴权失败，请检查 ADMIN_KEY 是否正确");
+                    return;
+                }
+                allUsers = json.users || [];
+                allOrders = json.orders || [];
+                allWithdraws = json.withdrawLog || [];
+                allRecharges = json.rechargeLog || [];
+                allReleases = json.releaseLog || [];
 
-                document.getElementById('powerRatio').value = allData.config.powerRatio;
-                document.getElementById('releaseHour').value = allData.config.releaseHour;
-                document.getElementById('releaseRate').value = allData.config.releaseRate;
-                document.getElementById('assetToBeanRate').value = allData.config.assetToBeanRate;
+                // 加载配置
+                const cfgRes = await fetch(`${API_BASE}/config`, {
+                    headers: { 'X-Admin-Key': ADMIN_KEY }
+                });
+                const cfgJson = await cfgRes.json();
+                config = cfgJson.config || {};
+                document.getElementById('powerRatio').value = config.powerRatio || 2;
+                document.getElementById('releaseHour').value = config.releaseHour || 8;
+                document.getElementById('releaseRate').value = config.releaseRate || 0.05;
+                document.getElementById('assetToBeanRate').value = config.assetToBeanRate || 5;
 
-                loadUserSelect();
-                renderUser();
+                renderAll();
             } catch (err) {
-                alert("接口加载失败："+err.message);
-                console.error("加载失败详情：", err);
+                alert("接口加载失败：" + err.message);
             }
         }
 
-        async function saveConfig(){
-            allData.config.powerRatio = parseFloat(document.getElementById('powerRatio').value);
-            allData.config.releaseHour = parseInt(document.getElementById('releaseHour').value);
-            allData.config.releaseRate = parseFloat(document.getElementById('releaseRate').value);
-            allData.config.assetToBeanRate = parseInt(document.getElementById('assetToBeanRate').value);
-            await saveAllData();
+        async function saveConfig() {
+            const newConfig = {
+                powerRatio: document.getElementById('powerRatio').value,
+                releaseHour: document.getElementById('releaseHour').value,
+                releaseRate: document.getElementById('releaseRate').value,
+                assetToBeanRate: document.getElementById('assetToBeanRate').value
+            };
+            await fetch(`${API_BASE}/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+                body: JSON.stringify(newConfig)
+            });
             alert("配置保存成功！");
         }
 
-        async function saveAllData(){
-            try {
-                await fetch(API,{
-                    method:"POST",
-                    body:JSON.stringify({data:JSON.stringify(allData)})
-                })
-            } catch (err) {
-                alert("保存失败，接口无法连接");
-                console.error(err);
-            }
+        async function userRecharge() {
+            const phone = document.getElementById('userSelect').value;
+            const num = parseInt(document.getElementById('rechargeNum').value);
+            if (!num || num <= 0) return alert("请输入合法充值数量");
+            const res = await fetch(`${API_BASE}/recharge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+                body: JSON.stringify({ phone, amount: num })
+            });
+            const data = await res.json();
+            alert(data.msg || "充值完成");
+            loadAllData();
         }
 
-        function loadUserSelect(){
-            let sel = document.getElementById('userSelect');
+        async function changeOrderStatus(orderId, newStatus) {
+            await fetch(`${API_BASE}/order-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+                body: JSON.stringify({ orderId, status: newStatus })
+            });
+            alert("状态修改成功");
+            loadAllData();
+        }
+
+        async function auditWithdraw(withdrawId, action) {
+            const res = await fetch(`${API_BASE}/audit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
+                body: JSON.stringify({ withdrawId, action })
+            });
+            const data = await res.json();
+            alert(data.msg || "操作完成");
+            loadAllData();
+        }
+
+        function renderAll() {
+            loadUserSelect();
+            renderUser();
+            renderOrder();
+            renderWithdraw();
+            renderRechargeLog();
+            renderReleaseLog();
+        }
+
+        function loadUserSelect() {
+            const sel = document.getElementById('userSelect');
             sel.innerHTML = "";
-            if(!allData.users || allData.users.length === 0) return;
-            allData.users.forEach(u=>{
-                let opt = document.createElement('option');
+            allUsers.forEach(u => {
+                const opt = document.createElement('option');
                 opt.value = u.phone;
                 opt.innerText = u.phone;
                 sel.appendChild(opt);
-            })
-        }
-
-        async function userRecharge(){
-            let phone = document.getElementById('userSelect').value;
-            let num = parseInt(document.getElementById('rechargeNum').value);
-            if(!num || num <= 0) return alert("请输入合法充值数量");
-
-            let user = allData.users.find(u=>u.phone === phone);
-            if(!user) return alert("会员不存在");
-
-            user.token = (parseInt(user.token)||0) + num;
-
-            allData.rechargeLog.push({
-                phone: phone,
-                num: num,
-                time: new Date().toLocaleString()
             });
-
-            await saveAllData();
-            await loadData();
-            alert("充值成功！");
         }
 
-        function renderUser(){
+        function renderUser() {
             let html = "";
-            if(!allData.users || allData.users.length === 0){
-                document.getElementById('userTable').innerHTML = "<tr><td colspan='6'>暂无会员数据</td></tr>";
-                return;
+            if (allUsers.length === 0) {
+                html = "<tr><td colspan='6'>暂无会员数据</td></tr>";
+            } else {
+                allUsers.forEach(u => {
+                    html += `<tr>
+                        <td>${u.phone}</td>
+                        <td>${u.power}</td>
+                        <td>${u.asset}</td>
+                        <td>${u.bean}</td>
+                        <td>${u.token}</td>
+                        <td>${u.create_time}</td>
+                    </tr>`;
+                });
             }
-            allData.users.forEach(u=>{
-                html += `<tr>
-                    <td>${u.phone}</td>
-                    <td>${u.power}</td>
-                    <td>${u.asset}</td>
-                    <td>${u.bean}</td>
-                    <td>${u.token}</td>
-                    <td>${u.createTime}</td>
-                </tr>`;
-            })
             document.getElementById('userTable').innerHTML = html;
         }
 
-        function renderOrder(){
+        function renderOrder() {
             let html = "";
-            if(!allData.users || allData.users.length === 0){
-                document.getElementById('orderTable').innerHTML = "<tr><td colspan='6'>暂无订单数据</td></tr>";
-                return;
-            }
-            allData.users.forEach(u=>{
-                if(!u.orderList) return;
-                u.orderList.forEach((o,idx)=>{
-                    let statusText = o.status==='wait'?'待发货':o.status==='send'?'已发货':'已收货';
+            if (allOrders.length === 0) {
+                html = "<tr><td colspan='7'>暂无订单数据</td></tr>";
+            } else {
+                allOrders.forEach(o => {
+                    const statusText = o.status === 'wait' ? '待发货' : (o.status === 'send' ? '已发货' : '已收货');
                     html += `<tr>
-                        <td>${u.phone}</td>
-                        <td>${o.goodsId}</td>
+                        <td>${o.id}</td>
+                        <td>${o.phone}</td>
+                        <td>${o.goods_id}</td>
                         <td>${o.price}</td>
                         <td>${statusText}</td>
-                        <td>${o.time}</td>
+                        <td>${o.create_time}</td>
                         <td>
-                            <select class="mini-input" id="orderSel_${u.phone}_${idx}">
+                            <select id="orderSel_${o.id}" class="mini-input">
                                 <option value="wait" ${o.status==='wait'?'selected':''}>待发货</option>
                                 <option value="send" ${o.status==='send'?'selected':''}>已发货</option>
                                 <option value="done" ${o.status==='done'?'selected':''}>已收货</option>
                             </select>
-                            <button onclick="changeOrderStatus('${u.phone}',${idx})">修改</button>
+                            <button onclick="changeOrderStatus(${o.id}, document.getElementById('orderSel_${o.id}').value)">修改</button>
                         </td>
                     </tr>`;
-                })
-            })
-            if(html === "") html = "<tr><td colspan='6'>暂无订单数据</td></tr>";
+                });
+            }
             document.getElementById('orderTable').innerHTML = html;
         }
 
-        async function changeOrderStatus(phone,idx){
-            let sel = document.getElementById(`orderSel_${phone}_${idx}`);
-            let newStatus = sel.value;
-            let user = allData.users.find(u=>u.phone === phone);
-            if(user && user.orderList[idx]){
-                user.orderList[idx].status = newStatus;
-                await saveAllData();
-                alert("订单状态修改成功");
-                renderOrder();
-            }
-        }
-
-        function renderWithdraw(){
+        function renderWithdraw() {
             let html = "";
-            if(!allData.withdrawLog || allData.withdrawLog.length === 0){
-                document.getElementById('withdrawTable').innerHTML = "<tr><td colspan='5'>暂无提现申请</td></tr>";
-                return;
+            if (allWithdraws.length === 0) {
+                html = "<tr><td colspan='6'>暂无提现申请</td></tr>";
+            } else {
+                allWithdraws.forEach(w => {
+                    const statusText = w.status === 'wait' ? '待审核' : (w.status === 'pass' ? '已通过' : '已拒绝');
+                    html += `<tr>
+                        <td>${w.id}</td>
+                        <td>${w.phone}</td>
+                        <td>${w.bean_num}</td>
+                        <td>${w.apply_time}</td>
+                        <td>${statusText}</td>
+                        <td>
+                            ${w.status === 'wait' ? `
+                                <button onclick="auditWithdraw(${w.id},'pass')">通过</button>
+                                <button class="gray" onclick="auditWithdraw(${w.id},'refuse')">拒绝</button>
+                            ` : '--'}
+                        </td>
+                    </tr>`;
+                });
             }
-            allData.withdrawLog.forEach((item,idx)=>{
-                let statusText = item.status==='wait'?'待审核':item.status==='pass'?'已通过':'已拒绝';
-                html += `<tr>
-                    <td>${item.phone}</td>
-                    <td>${item.beanNum}</td>
-                    <td>${item.applyTime}</td>
-                    <td>${statusText}</td>
-                    <td>
-                        ${item.status==='wait'?`
-                            <button onclick="auditWithdraw(${idx},'pass')">通过</button>
-                            <button class="gray" onclick="auditWithdraw(${idx},'refuse')">拒绝</button>
-                        `:'--'}
-                    </td>
-                </tr>`;
-            })
             document.getElementById('withdrawTable').innerHTML = html;
         }
 
-        async function auditWithdraw(idx,type){
-            let item = allData.withdrawLog[idx];
-            if(item.status !== 'wait') return;
-
-            let user = allData.users.find(u=>u.phone === item.phone);
-            if(!user) return;
-
-            if(type === 'pass'){
-                let bean = parseInt(user.bean)||0;
-                if(bean < item.beanNum){
-                    alert("用户酒豆不足，无法通过");
-                    return;
-                }
-                user.bean = bean - item.beanNum;
-                item.status = "pass";
-            }else{
-                item.status = "refuse";
-            }
-
-            await saveAllData();
-            alert(type==='pass'?"审核通过":"已拒绝");
-            renderWithdraw();
-        }
-
-        function renderRechargeLog(){
+        function renderRechargeLog() {
             let html = "";
-            if(!allData.rechargeLog || allData.rechargeLog.length === 0){
-                document.getElementById('rechargeLogTable').innerHTML = "<tr><td colspan='3'>暂无充值记录</td></tr>";
-                return;
+            if (allRecharges.length === 0) {
+                html = "<tr><td colspan='3'>暂无充值记录</td></tr>";
+            } else {
+                allRecharges.forEach(r => {
+                    html += `<tr>
+                        <td>${r.phone}</td>
+                        <td>${r.amount}</td>
+                        <td>${r.create_time}</td>
+                    </tr>`;
+                });
             }
-            allData.rechargeLog.forEach(l=>{
-                html += `<tr>
-                    <td>${l.phone}</td>
-                    <td>${l.num}</td>
-                    <td>${l.time}</td>
-                </tr>`;
-            })
             document.getElementById('rechargeLogTable').innerHTML = html;
         }
 
-        function renderReleaseLog(){
+        function renderReleaseLog() {
             let html = "";
-            if(!allData.releaseLog || allData.releaseLog.length === 0){
-                document.getElementById('releaseLogTable').innerHTML = "<tr><td colspan='3'>暂无释放记录</td></tr>";
-                return;
+            if (allReleases.length === 0) {
+                html = "<tr><td colspan='3'>暂无释放记录</td></tr>";
+            } else {
+                allReleases.forEach(r => {
+                    html += `<tr>
+                        <td>${r.date}</td>
+                        <td>${r.user_count}</td>
+                        <td>${r.executed_time}</td>
+                    </tr>`;
+                });
             }
-            allData.releaseLog.forEach(l=>{
-                html += `<tr>
-                    <td>${l.date}</td>
-                    <td>${l.userCount}</td>
-                    <td>${l.fullTime}</td>
-                </tr>`;
-            })
             document.getElementById('releaseLogTable').innerHTML = html;
         }
 
-        window.onload = loadData;
+        window.onload = loadAllData;
     </script>
 </body>
 </html>
