@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>确认支付</title>
     <style>
-        :root {--primary:#8c1c13; --gold:#c9a15e;}
+        :root { --primary:#8c1c13; --gold:#c9a15e; }
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             min-height:100vh;
@@ -14,9 +14,10 @@
             justify-content:center;
             background: linear-gradient(135deg, #faf7f2, #f0e9df);
             font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+            padding: 20px;
         }
         .card {
-            width:90%;
+            width:100%;
             max-width:380px;
             background:#fff;
             border-radius:24px;
@@ -30,13 +31,36 @@
             font-size:20px;
             font-weight:600;
             color: var(--primary);
-            margin-bottom:30px;
+            margin-bottom:20px;
+        }
+        .goods-preview {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .goods-preview img {
+            width: 70px; height: 70px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+        .goods-preview .name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        .goods-preview .price {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 18px;
         }
         .row {
             display:flex;
             justify-content: space-between;
             align-items: center;
-            padding:16px 0;
+            padding:14px 0;
             border-bottom:1px solid #f0f0f0;
         }
         .row:last-child { border:none; }
@@ -51,6 +75,47 @@
             font-size:13px;
             color:#888;
             line-height:1.6;
+        }
+        .address-section {
+            margin: 20px 0;
+            padding: 16px;
+            background: #faf7f2;
+            border-radius: 12px;
+        }
+        .address-section .current-address {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .address-section .edit-btn {
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #666;
+        }
+        .address-input {
+            width: 100%;
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+        .address-input input {
+            flex: 1;
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+        .address-input button {
+            height: 40px;
+            padding: 0 16px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
         }
         .btn-group { display:flex; gap:12px; margin-top:20px; }
         .btn {
@@ -75,53 +140,148 @@
 <body>
     <div class="card">
         <div class="title">确认支付</div>
-        <div class="row"><span class="label">商品编号</span><span class="value" id="gid">--</span></div>
-        <div class="row"><span class="label">支付金额</span><span class="highlight" id="price">0</span></div>
-        <div class="row"><span class="label">当前酒令</span><span id="token">0</span></div>
+
+        <!-- 商品预览 -->
+        <div class="goods-preview">
+            <img id="goodsImage" src="" alt="商品图">
+            <div>
+                <div class="name" id="goodsName">加载中...</div>
+                <div class="price" id="goodsPrice">¥0</div>
+            </div>
+        </div>
+
+        <div class="row"><span class="label">所需酒令</span><span class="highlight" id="payAmount">0</span></div>
+        <div class="row"><span class="label">当前酒令</span><span id="tokenBalance">0</span></div>
         <div class="row"><span class="label">赠送算力</span><span id="addPower">0</span></div>
+
         <div class="tip">
             支付成功后自动进入待发货订单。<br>算力倍数：<span id="ratio">2</span>x
         </div>
+
+        <!-- 收货地址 -->
+        <div class="address-section" id="addressSection">
+            <div class="current-address" id="addressDisplay">
+                <span id="addressText" style="font-size:14px;">暂无默认地址</span>
+                <button class="edit-btn" onclick="showAddressInput()">修改</button>
+            </div>
+            <div class="address-input" id="addressInput" style="display:none;">
+                <input type="text" id="addressField" placeholder="请输入收货地址">
+                <button onclick="saveAddress()">保存</button>
+            </div>
+        </div>
+
         <div class="btn-group">
             <button class="btn btn-back" onclick="history.back()">取消</button>
             <button class="btn btn-pay" onclick="doPay()">确认支付</button>
         </div>
     </div>
     <div class="toast" id="toast"></div>
+
     <script>
         const API = '/api';
-        let goodsId, payPrice, currUser, powerRatio=2;
+        let goodsId, payPrice, currUser, powerRatio=2, userAddress='';
+
         function showToast(msg, cb){
             const t=document.getElementById('toast');
             t.innerText=msg; t.classList.add('show');
             setTimeout(()=>{ t.classList.remove('show'); if(cb) cb(); },2000);
         }
-        window.onload=async function(){
-            let user=localStorage.getItem('loginUser');
-            if(!user) return location.href='index.html';
-            currUser=JSON.parse(user);
-            const url=new URL(location.href);
-            goodsId=parseInt(url.searchParams.get('gid'))||0;
-            payPrice=parseInt(url.searchParams.get('price'))||0;
-            document.getElementById('gid').innerText=goodsId;
-            document.getElementById('price').innerText=payPrice;
-            document.getElementById('token').innerText=currUser.token||0;
-            const cfg=await fetch(`${API}/config`).then(r=>r.json());
-            if(cfg.config) powerRatio=Number(cfg.config.powerRatio)||2;
-            document.getElementById('ratio').innerText=powerRatio;
-            document.getElementById('addPower').innerText=(payPrice*powerRatio).toFixed(0);
+
+        // 加载商品详情和用户信息
+        async function loadData() {
+            const url = new URL(location.href);
+            goodsId = parseInt(url.searchParams.get('gid')) || 0;
+            payPrice = parseInt(url.searchParams.get('price')) || 0;
+
+            let userStr = localStorage.getItem('loginUser');
+            if(!userStr) { location.href='index.html'; return; }
+            currUser = JSON.parse(userStr);
+
+            // 获取商品详情
+            const goodsRes = await fetch(`${API}/goods-detail?id=${goodsId}`);
+            const goodsData = await goodsRes.json();
+            if(goodsData.code===0) {
+                const g = goodsData.good;
+                document.getElementById('goodsImage').src = g.image_url;
+                document.getElementById('goodsName').innerText = g.name;
+                document.getElementById('goodsPrice').innerText = '¥' + g.price;
+                document.getElementById('payAmount').innerText = payPrice;
+                document.getElementById('tokenBalance').innerText = currUser.token || 0;
+
+                // 获取配置
+                const cfgRes = await fetch(`${API}/config`);
+                const cfgData = await cfgRes.json();
+                if(cfgData.config) powerRatio = Number(cfgData.config.powerRatio) || 2;
+                document.getElementById('ratio').innerText = powerRatio;
+                document.getElementById('addPower').innerText = Math.floor(payPrice * powerRatio);
+            }
+
+            // 获取用户默认地址
+            const userRes = await fetch(`${API}/user?phone=${currUser.phone}`);
+            const userData = await userRes.json();
+            if(userData.code===0) {
+                userAddress = userData.user.address || '';
+                if(userAddress) {
+                    document.getElementById('addressText').innerText = userAddress;
+                } else {
+                    showAddressInput();
+                }
+            }
         }
-        async function doPay(){
-            const res=await fetch(`${API}/pay`,{
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({phone:currUser.phone, goodsId, price:payPrice})
+
+        // 显示地址输入框
+        function showAddressInput() {
+            document.getElementById('addressDisplay').style.display = 'none';
+            document.getElementById('addressInput').style.display = 'flex';
+            document.getElementById('addressField').value = userAddress || '';
+        }
+
+        // 保存地址
+        async function saveAddress() {
+            const addr = document.getElementById('addressField').value.trim();
+            if(!addr) return showToast('请输入地址');
+            const res = await fetch(`${API}/save-address`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: currUser.phone, address: addr })
             });
-            const data=await res.json();
-            if(data.code===0){
+            const data = await res.json();
+            if(data.code===0) {
+                userAddress = addr;
+                document.getElementById('addressText').innerText = addr;
+                document.getElementById('addressInput').style.display = 'none';
+                document.getElementById('addressDisplay').style.display = 'flex';
+                showToast('地址已保存');
+            } else {
+                showToast(data.msg || '保存失败');
+            }
+        }
+
+        // 支付
+        async function doPay() {
+            if(!userAddress) {
+                return showToast('请填写收货地址');
+            }
+            const res = await fetch(`${API}/pay`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: currUser.phone,
+                    goodsId,
+                    price: payPrice,
+                    address: userAddress
+                })
+            });
+            const data = await res.json();
+            if(data.code===0) {
                 localStorage.setItem('loginUser', JSON.stringify(data.user));
                 showToast('支付成功', ()=> location.href='mall.html');
-            } else showToast(data.msg||'支付失败');
+            } else {
+                showToast(data.msg || '支付失败');
+            }
         }
+
+        window.onload = loadData;
     </script>
 </body>
 </html>
