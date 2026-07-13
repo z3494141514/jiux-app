@@ -1,5 +1,4 @@
 export async function onRequest({ request, env }) {
-  // 推荐 RPC 节点列表（优先使用快速的公共节点）
   const RPC_LIST = [
     'https://binance.llamarpc.com',
     'https://rpc.ankr.com/bsc',
@@ -16,7 +15,6 @@ export async function onRequest({ request, env }) {
 
   let lastError = '';
 
-  // 遍历 RPC 列表，直到成功
   for (const RPC of RPC_LIST) {
     try {
       // 尝试获取 ART/USDT 交易对
@@ -43,31 +41,21 @@ export async function onRequest({ request, env }) {
 
       // 回退到 ART/WBNB
       const pairWbnb = await getPairAddress(RPC, ART, WBNB);
-      if (!pairWbnb) {
-        lastError = '交易对不存在';
-        continue;
-      }
+      if (!pairWbnb) continue;
 
       const r2 = await getReserves(RPC, pairWbnb);
-      let artAmount, wbnbAmount;
       // WBNB (0xbb4C...) < ART (0x7ff6eeb...)，所以 WBNB 是 token0
-      wbnbAmount = Number(r2.reserve0) / 1e18;
-      artAmount = Number(r2.reserve1) / 1e18;
+      const wbnbAmount = Number(r2.reserve0) / 1e18;
+      const artAmount  = Number(r2.reserve1) / 1e18;
 
-      if (artAmount <= 0 || wbnbAmount <= 0) {
-        lastError = '流动性为空';
-        continue;
-      }
+      if (artAmount <= 0 || wbnbAmount <= 0) continue;
 
       const artPriceInBnb = wbnbAmount / artAmount;
       const bnbPrice = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
         .then(r => r.json())
         .then(d => parseFloat(d.price));
 
-      if (isNaN(bnbPrice)) {
-        lastError = 'BNB价格获取失败';
-        continue;
-      }
+      if (isNaN(bnbPrice)) continue;
 
       const artPriceUsd = (artPriceInBnb * bnbPrice).toFixed(6);
       return jsonResponse(0, {
@@ -80,12 +68,10 @@ export async function onRequest({ request, env }) {
 
     } catch (e) {
       lastError = e.message;
-      // 当前 RPC 失败，尝试下一个
       continue;
     }
   }
 
-  // 所有 RPC 都失败了
   return new Response(JSON.stringify({ code: 1, msg: '所有RPC节点均不可用: ' + lastError }), {
     status: 500,
     headers: { 'Content-Type': 'application/json' }
@@ -127,7 +113,11 @@ export async function onRequest({ request, env }) {
     }).then(r => r.json());
 
     if (res.error) throw new Error(res.error.message || '获取储备失败');
-    const hex = res.result.startsWith('0x') ? res.result.slice(2) : res.result;
+    const raw = res.result;
+    if (!raw || raw === '0x' || raw.length < 130) {
+      throw new Error('储备数据无效');
+    }
+    const hex = raw.startsWith('0x') ? raw.slice(2) : raw;
     return {
       reserve0: BigInt('0x' + hex.slice(0, 64)),
       reserve1: BigInt('0x' + hex.slice(64, 128))
