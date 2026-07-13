@@ -3,297 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>酒蕴茶乡 | 登录注册</title>
+    <title>酒蕴茶乡 · 尊享登录</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #6b1414 0%, #942222 50%, #b83030 100%);
-            background-attachment: fixed;
-            overflow-x: hidden;
-        }
-        .brand-wrap {
-            text-align: center;
-            padding: 60px 20px 40px;
-            animation: fadeInDown 1s ease forwards;
-            opacity: 0;
-        }
-        .brand-logo-text {
-            font-size: 36px;
-            color: #ffffff;
-            font-weight: 600;
-            letter-spacing: 8px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        .brand-slogan {
-            color: #f0d8b8;
-            font-size: 15px;
-            margin-top: 12px;
-            letter-spacing: 2px;
-        }
-        .container {
-            padding: 0 20px 40px;
-            animation: fadeInUp 1s ease 0.3s forwards;
-            opacity: 0;
-        }
-        .auth-card {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 24px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background: radial-gradient(circle at 20% 30%, #2d0a0a, #1a0202);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
             overflow: hidden;
         }
+        .bg-shapes { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; }
+        .shape {
+            position:absolute;
+            border-radius:50%;
+            background: rgba(140,28,19,0.15);
+            filter:blur(80px);
+        }
+        .shape:nth-child(1){ width:400px; height:400px; top:-100px; left:-100px; }
+        .shape:nth-child(2){ width:300px; height:300px; bottom:-80px; right:-80px; background:rgba(200,160,100,0.1); }
+        .container {
+            position:relative;
+            z-index:1;
+            width:90%;
+            max-width:400px;
+            animation: fadeInUp 1s ease;
+        }
+        @keyframes fadeInUp { from{ opacity:0; transform:translateY(40px); } to{ opacity:1; transform:translateY(0); } }
+        .brand {
+            text-align:center;
+            margin-bottom:30px;
+            color:#e8d5b0;
+        }
+        .brand-logo {
+            font-size:42px;
+            letter-spacing:10px;
+            font-weight:300;
+            text-shadow: 0 0 20px rgba(200,150,80,0.4);
+            margin-bottom:8px;
+        }
+        .brand-slogan {
+            font-size:14px;
+            letter-spacing:4px;
+            color:rgba(232,213,176,0.7);
+        }
+        .card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border-radius:24px;
+            padding:30px 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.1);
+            border:1px solid rgba(255,255,255,0.1);
+        }
         .tab-nav {
-            display: flex;
-            position: relative;
-            height: 56px;
-            background: rgba(235, 228, 218, 0.6);
+            display:flex;
+            margin-bottom:30px;
+            position:relative;
+            background: rgba(255,255,255,0.05);
+            border-radius:12px;
+            padding:4px;
         }
         .tab-item {
-            flex: 1;
-            line-height: 56px;
-            text-align: center;
-            font-size: 16px;
-            color: #666;
-            cursor: pointer;
-            transition: color 0.3s ease;
-            position: relative;
-            z-index: 2;
+            flex:1;
+            text-align:center;
+            padding:12px;
+            border-radius:10px;
+            color:rgba(255,255,255,0.5);
+            cursor:pointer;
+            transition: all 0.3s;
+            font-size:15px;
+            letter-spacing:1px;
+            position:relative;
+            z-index:2;
         }
         .tab-item.active {
-            color: #8c1c13;
-            font-weight: 500;
+            background: rgba(255,255,255,0.15);
+            color:#fff;
+            font-weight:500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
-        .tab-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 50%;
-            height: 3px;
-            background: linear-gradient(90deg, #8c1c13, #b83030);
-            border-radius: 3px;
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            z-index: 1;
+        .tab-line { display:none; }
+        .input-group {
+            margin-bottom:24px;
+            position:relative;
         }
-        .form-content {
-            padding: 30px 24px;
+        .input-group input {
+            width:100%;
+            height:52px;
+            padding: 0 20px 0 48px;
+            background: rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.15);
+            border-radius:14px;
+            color:#fff;
+            font-size:15px;
+            transition: all 0.3s;
+            outline:none;
         }
-        .form-panel {
-            display: none;
-            animation: fadeIn 0.5s ease;
+        .input-group input:focus {
+            border-color: #c9a15e;
+            box-shadow: 0 0 0 3px rgba(201,161,94,0.1);
+            background: rgba(255,255,255,0.08);
         }
-        .form-panel.show {
-            display: block;
+        .input-group input::placeholder { color:rgba(255,255,255,0.3); }
+        .input-icon {
+            position:absolute;
+            left:16px;
+            top:50%;
+            transform:translateY(-50%);
+            font-size:18px;
+            color:rgba(255,255,255,0.4);
         }
-        .input-box {
-            margin-bottom: 22px;
+        .tip-text {
+            font-size:12px;
+            color:rgba(255,255,255,0.3);
+            margin-top:6px;
+            padding-left:4px;
         }
-        .input-box input {
-            width: 100%;
-            height: 54px;
-            padding: 0 18px;
-            background: #f9f5ee;
-            border: 1px solid #e8ddd0;
-            border-radius: 14px;
-            font-size: 15px;
-            color: #333;
-            transition: all 0.3s ease;
+        .btn {
+            width:100%;
+            height:54px;
+            background: linear-gradient(135deg, #c9a15e, #8c1c13);
+            border:none;
+            border-radius:14px;
+            color:#fff;
+            font-size:16px;
+            font-weight:500;
+            letter-spacing:2px;
+            cursor:pointer;
+            transition: all 0.3s;
+            margin-top:10px;
+            box-shadow: 0 8px 20px rgba(140,28,19,0.3);
         }
-        .input-box input:focus {
-            outline: none;
-            border-color: #8c1c13;
-            box-shadow: 0 0 0 4px rgba(140, 28, 19, 0.12);
-            background: #fff;
-        }
-        .input-tip {
-            font-size: 12px;
-            color: #999;
-            margin: 6px 0 0 6px;
-        }
-        .submit-btn {
-            width: 100%;
-            height: 54px;
-            border: none;
-            border-radius: 14px;
-            font-size: 17px;
-            font-weight: 500;
-            color: #fff;
-            background: linear-gradient(135deg, #8c1c13, #b83030);
-            box-shadow: 0 6px 16px rgba(140, 28, 19, 0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 8px;
-        }
-        .submit-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 3px 8px rgba(140, 28, 19, 0.2);
-        }
+        .btn:active { transform:scale(0.98); }
         .toast {
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%) scale(0.8);
-            background: rgba(0, 0, 0, 0.75);
-            color: #fff;
-            padding: 14px 28px;
-            border-radius: 12px;
-            font-size: 14px;
-            z-index: 9999;
-            opacity: 0;
-            transition: all 0.3s ease;
-            pointer-events: none;
+            position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+            background: rgba(0,0,0,0.8); color:#fff; padding:12px 30px; border-radius:30px;
+            font-size:14px; z-index:9999; opacity:0; transition:opacity 0.3s; pointer-events:none;
         }
-        .toast.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(40px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.96); }
-            to { opacity: 1; transform: scale(1); }
-        }
+        .toast.show { opacity:1; }
     </style>
 </head>
 <body>
-    <div class="brand-wrap">
-        <div class="brand-logo-text">酒蕴茶乡</div>
-        <div class="brand-slogan">甄选天下好酒 · 茗品万千茶香</div>
+    <div class="bg-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
     </div>
-
     <div class="container">
-        <div class="auth-card">
+        <div class="brand">
+            <div class="brand-logo">酒蕴茶乡</div>
+            <div class="brand-slogan">甄选天下好酒 · 茗品万千茶香</div>
+        </div>
+        <div class="card">
             <div class="tab-nav">
                 <div class="tab-item active" data-type="login">账号登录</div>
-                <div class="tab-item" data-type="register">新用户注册</div>
-                <div class="tab-line"></div>
+                <div class="tab-item" data-type="register">注册</div>
             </div>
-
-            <div class="form-content">
-                <div class="form-panel show" id="loginPanel">
-                    <div class="input-box">
-                        <input type="text" id="loginAccount" placeholder="请输入11位手机号">
-                    </div>
-                    <div class="input-box">
-                        <input type="password" id="loginPwd" placeholder="请输入登录密码">
-                    </div>
-                    <button class="submit-btn" onclick="doLogin()">立即登录</button>
+            <div id="loginPanel">
+                <div class="input-group">
+                    <span class="input-icon">📱</span>
+                    <input type="text" id="loginPhone" placeholder="手机号">
                 </div>
-
-                <div class="form-panel" id="registerPanel">
-                    <div class="input-box">
-                        <input type="text" id="regPhone" placeholder="请输入11位手机号">
-                        <div class="input-tip">手机号即为您的会员ID与邀请码</div>
-                    </div>
-                    <div class="input-box">
-                        <input type="password" id="regPwd" placeholder="请设置登录密码（至少6位）">
-                    </div>
-                    <div class="input-box">
-                        <input type="text" id="inviteCode" placeholder="邀请码（选填）">
-                        <div class="input-tip">填写邀请码可绑定上级关系</div>
-                    </div>
-                    <button class="submit-btn" onclick="doRegister()">立即注册</button>
+                <div class="input-group">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="loginPwd" placeholder="密码">
                 </div>
+                <button class="btn" onclick="doLogin()">登 录</button>
+            </div>
+            <div id="registerPanel" style="display:none;">
+                <div class="input-group">
+                    <span class="input-icon">📱</span>
+                    <input type="text" id="regPhone" placeholder="手机号">
+                    <div class="tip-text">手机号即为您的会员ID</div>
+                </div>
+                <div class="input-group">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="regPwd" placeholder="密码（至少6位）">
+                </div>
+                <div class="input-group">
+                    <span class="input-icon">🎁</span>
+                    <input type="text" id="inviteCode" placeholder="邀请码（选填）">
+                </div>
+                <button class="btn" onclick="doRegister()">注 册</button>
             </div>
         </div>
     </div>
-
     <div class="toast" id="toast"></div>
-
     <script>
-        const API_BASE = "/api";
-        const tabItems = document.querySelectorAll('.tab-item');
-        const tabLine = document.querySelector('.tab-line');
+        const tabs = document.querySelectorAll('.tab-item');
         const loginPanel = document.getElementById('loginPanel');
         const registerPanel = document.getElementById('registerPanel');
-        const toast = document.getElementById('toast');
-
-        tabItems.forEach((tab, idx) => {
-            tab.addEventListener('click', function () {
-                tabItems.forEach(t => t.classList.remove('active'));
+        tabs.forEach((tab, idx) => {
+            tab.addEventListener('click', function(){
+                tabs.forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
-                tabLine.style.transform = `translateX(${idx * 100}%)`;
-                const type = this.dataset.type;
-                if (type === 'login') {
-                    loginPanel.classList.add('show');
-                    registerPanel.classList.remove('show');
+                if(this.dataset.type === 'login'){
+                    loginPanel.style.display='block';
+                    registerPanel.style.display='none';
                 } else {
-                    loginPanel.classList.remove('show');
-                    registerPanel.classList.add('show');
+                    loginPanel.style.display='none';
+                    registerPanel.style.display='block';
                 }
             })
         });
-
-        function showToast(text) {
-            toast.innerText = text;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2200);
+        function showToast(msg){
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(()=> t.classList.remove('show'), 2200);
         }
-
-        async function doLogin() {
-            const phone = document.getElementById('loginAccount').value.trim();
+        async function doLogin(){
+            const phone = document.getElementById('loginPhone').value.trim();
             const pwd = document.getElementById('loginPwd').value.trim();
-
-            if (!phone) return showToast('请输入手机号');
-            if (!/^1\d{10}$/.test(phone)) return showToast('请输入正确11位手机号');
-            if (!pwd) return showToast('请输入密码');
-
-            try {
-                const res = await fetch(`${API_BASE}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, pwd })
-                });
-                const data = await res.json();
-                if (data.code === 0) {
-                    showToast('登录成功');
-                    localStorage.setItem("loginUser", JSON.stringify(data.user));
-                    setTimeout(() => location.href = "mall.html", 1200);
-                } else {
-                    showToast(data.msg || '登录失败');
-                }
-            } catch (err) {
-                showToast('服务器连接失败');
-            }
+            if(!phone || !/^1\d{10}$/.test(phone)) return showToast('请输入正确手机号');
+            if(!pwd) return showToast('请输入密码');
+            const res = await fetch('/api/login',{
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({phone, pwd})
+            });
+            const data = await res.json();
+            if(data.code === 0){
+                localStorage.setItem('loginUser', JSON.stringify(data.user));
+                showToast('登录成功');
+                setTimeout(()=> location.href='mall.html', 1000);
+            } else showToast(data.msg || '登录失败');
         }
-
-        async function doRegister() {
+        async function doRegister(){
             const phone = document.getElementById('regPhone').value.trim();
             const pwd = document.getElementById('regPwd').value.trim();
             const invite = document.getElementById('inviteCode').value.trim();
-
-            if (!phone) return showToast('请输入手机号');
-            if (!/^1\d{10}$/.test(phone)) return showToast('请输入正确11位手机号');
-            if (pwd.length < 6) return showToast('密码至少6位');
-
-            try {
-                const res = await fetch(`${API_BASE}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, pwd, inviteCode: invite })
-                });
-                const data = await res.json();
-                if (data.code === 0) {
-                    showToast('注册成功，请登录');
-                    tabItems[0].click();
-                } else {
-                    showToast(data.msg || '注册失败');
-                }
-            } catch (err) {
-                showToast('服务器连接失败');
-            }
+            if(!phone || !/^1\d{10}$/.test(phone)) return showToast('请输入正确手机号');
+            if(pwd.length < 6) return showToast('密码至少6位');
+            const res = await fetch('/api/register',{
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({phone, pwd, inviteCode: invite})
+            });
+            const data = await res.json();
+            if(data.code === 0){
+                showToast('注册成功');
+                tabs[0].click();
+            } else showToast(data.msg || '注册失败');
         }
     </script>
 </body>
