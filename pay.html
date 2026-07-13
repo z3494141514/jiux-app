@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>确认付款</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        }
+        :root {
+            --main: #8c1c13;
+            --main-light: #b83030;
+            --bg-page: #f8f3ed;
+            --white: #fff;
+            --shadow: 0 8px 24px rgba(140, 28, 19, 0.12);
+        }
+        body {
+            background: var(--bg-page);
+            padding: 20px;
+        }
+        .pay-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-top: 40px;
+        }
+        .title {
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--main);
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 15px;
+        }
+        .tip {
+            color: #999;
+            font-size: 13px;
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+        .btn-group {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            transition: 0.3s;
+        }
+        .cancel {
+            background: #eee;
+            color: #666;
+        }
+        .submit {
+            background: linear-gradient(135deg, var(--main), var(--main-light));
+            color: #fff;
+        }
+        .toast {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%,-50%);
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 12px;
+            z-index: 9999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="pay-card">
+        <div class="title">订单确认 · 酒令支付</div>
+        <div class="row"><span>商品编号</span><span id="gid">--</span></div>
+        <div class="row"><span>应付金额(酒令)</span><span id="price">0</span></div>
+        <div class="row"><span>当前酒令余额</span><span id="token">0</span></div>
+        <div class="row"><span>本次赠送算力</span><span id="addPower">0</span></div>
+
+        <div class="tip">
+            说明：使用酒令完成支付，支付成功自动进入【待发货】订单；<br>
+            每笔订单赠送 支付金额 × <span id="ratio">2</span> 倍算力。
+        </div>
+
+        <div class="btn-group">
+            <button class="btn cancel" onclick="goBack()">取消</button>
+            <button class="btn submit" onclick="doPay()">确认支付</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 算力倍数，和商城页保持一致
+        const POWER_RATIO = 2;
+        let goodsId = 0;
+        let payPrice = 0;
+        let currUser = null;
+
+        function showToast(text, callback) {
+            const t = document.getElementById('toast');
+            t.innerText = text;
+            t.style.display = 'block';
+            setTimeout(() => {
+                t.style.display = 'none';
+                if(callback) callback();
+            }, 2000);
+        }
+
+        // 返回商城
+        function goBack() {
+            location.href = "mall.html";
+        }
+
+        // 初始化页面
+        window.onload = function() {
+            // 登录检测
+            let userStr = localStorage.getItem("loginUser");
+            if(!userStr) {
+                location.href = "index.html";
+                return;
+            }
+            currUser = JSON.parse(userStr);
+            // 获取地址参数
+            const url = new URL(location.href);
+            goodsId = parseInt(url.searchParams.get('gid')) || 0;
+            payPrice = parseInt(url.searchParams.get('price')) || 0;
+
+            document.getElementById('gid').innerText = goodsId;
+            document.getElementById('price').innerText = payPrice;
+            document.getElementById('token').innerText = currUser.token;
+            document.getElementById('addPower').innerText = payPrice * POWER_RATIO;
+            document.getElementById('ratio').innerText = POWER_RATIO;
+        }
+
+        // 执行支付
+        async function doPay() {
+            const userToken = parseInt(currUser.token) || 0;
+            // 判断酒令是否充足
+            if(userToken < payPrice) {
+                showToast('酒令余额不足，无法支付');
+                return;
+            }
+
+            // 1. 扣除酒令
+            currUser.token = userToken - payPrice;
+            // 2. 增加算力
+            const addPower = payPrice * POWER_RATIO;
+            currUser.power = parseInt(currUser.power || 0) + addPower;
+            // 3. 生成订单
+            if(!currUser.orderList) currUser.orderList = [];
+            const order = {
+                goodsId: goodsId,
+                price: payPrice,
+                time: new Date().toLocaleString(),
+                status: "wait"  // 待发货
+            };
+            currUser.orderList.push(order);
+
+            // 4. 更新本地存储
+            localStorage.setItem("loginUser", JSON.stringify(currUser));
+
+            // 5. 同步后端数据
+            await syncUserData();
+
+            showToast('支付成功！订单已进入待发货', ()=>{
+                location.href = "mall.html#member";
+            });
+        }
+
+        // 同步到后端接口
+        async function syncUserData() {
+            const res = await fetch("/api/data");
+            const json = await res.json();
+            let allData = {};
+            try {
+                allData = JSON.parse(json.data);
+            } catch(e) {
+                allData = { users: [] };
+            }
+            const idx = allData.users.findIndex(u => u.phone === currUser.phone);
+            if(idx > -1) {
+                allData.users[idx] = currUser;
+            }
+            await fetch("/api/data", {
+                method: "POST",
+                headers: { "Content-Type":"application/json" },
+                body: JSON.stringify({ data: JSON.stringify(allData) })
+            });
+        }
+    </script>
+</body>
+</html>

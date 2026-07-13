@@ -215,15 +215,15 @@
 
                 <div class="form-panel" id="registerPanel">
                     <div class="input-box">
-                        <input type="text" id="regPhone" placeholder="请输入11位手机号码">
-                        <div class="input-tip">手机号将作为您唯一登录账号</div>
+                        <input type="text" id="regPhone" placeholder="请输入11位手机号">
+                        <div class="input-tip">手机号即为您的会员ID与邀请码</div>
                     </div>
                     <div class="input-box">
                         <input type="password" id="regPwd" placeholder="请设置登录密码（至少6位）">
                     </div>
                     <div class="input-box">
                         <input type="text" id="inviteCode" placeholder="邀请码（选填）">
-                        <div class="input-tip">填写邀请码，自动绑定对应上级</div>
+                        <div class="input-tip">填写邀请码可绑定上级关系</div>
                     </div>
                     <button class="submit-btn" onclick="doRegister()">立即注册</button>
                 </div>
@@ -284,52 +284,53 @@
             });
         }
 
-        // 登录逻辑：登录成功 → 跳转到 mall.html
+        // 登录
         async function doLogin() {
-            const account = document.getElementById('loginAccount').value.trim();
+            const phone = document.getElementById('loginAccount').value.trim();
             const pwd = document.getElementById('loginPwd').value.trim();
 
-            if (!account) return showToast('请输入手机号');
-            if (!/^1\d{10}$/.test(account)) return showToast('请输入正确的11位手机号');
+            if (!phone) return showToast('请输入手机号');
+            if (!/^1\d{10}$/.test(phone)) return showToast('请输入正确11位手机号');
             if (!pwd) return showToast('请输入密码');
 
             const userData = await getUserData();
-            const user = userData.users.find(item => item.phone === account && item.pwd === pwd);
+            const user = userData.users.find(item => item.phone === phone && item.pwd === pwd);
             if (user) {
                 showToast('登录成功');
-                // 保存登录信息到本地存储
                 localStorage.setItem("loginUser", JSON.stringify(user));
-                // 核心跳转：1.2秒后打开 mall.html
                 setTimeout(() => location.href = "mall.html", 1200);
             } else {
                 showToast('账号或密码错误');
             }
         }
 
-        // 注册逻辑：新增用户并补齐会员资产字段
+        // 注册：所有初始数据 = 0
         async function doRegister() {
             const phone = document.getElementById('regPhone').value.trim();
             const pwd = document.getElementById('regPwd').value.trim();
             const invite = document.getElementById('inviteCode').value.trim();
 
-            if (!/^1\d{10}$/.test(phone)) return showToast('请输入合法11位手机号');
-            if (pwd.length < 6) return showToast('密码不能少于6位');
+            if (!phone) return showToast('请输入手机号');
+            if (!/^1\d{10}$/.test(phone)) return showToast('请输入正确11位手机号');
+            if (pwd.length < 6) return showToast('密码至少6位');
 
             const userData = await getUserData();
-            if (userData.users.some(u => u.phone === phone)) return showToast('该手机号已注册');
+            if (userData.users.some(u => u.phone === phone)) return showToast('该账号已注册');
 
             const parent = invite ? userData.users.find(u => u.phone === invite) : null;
+            // 初始数据全部置 0
             const newUser = {
                 phone: phone,
                 pwd: pwd,
-                inviteCode: invite,
+                inviteCode: invite || phone,
                 parentPhone: parent ? parent.phone : '',
                 createTime: new Date().toLocaleString(),
                 avatar: "",
-                power: "100",
-                asset: "0.00",
-                bean: "88",
-                token: "10"
+                power: "0",      // 算力
+                asset: "0.00",   // 数字资产
+                bean: "0",       // 酒豆
+                token: "0",      // 酒令（支付货币）
+                orderList: []    // 订单列表
             };
             userData.users.push(newUser);
             await saveUserData(userData);

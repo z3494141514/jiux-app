@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>酒蕴茶乡 - 高端商城</title>
+    <title>酒蕴茶乡 - 商城首页</title>
     <style>
-        /* 全局重置 & 基础样式 */
         * {
             margin: 0;
             padding: 0;
@@ -32,60 +31,28 @@
             overflow-x: hidden;
         }
 
-        /* 全局入场动画 */
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-
         @keyframes scaleIn {
-            from {
-                opacity: 0;
-                transform: scale(0.94);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+            from { opacity: 0; transform: scale(0.94); }
+            to { opacity: 1; transform: scale(1); }
         }
-
         @keyframes slideRight {
-            from {
-                transform: translateX(-20px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
-        .animate-fade-up {
-            animation: fadeInUp 0.7s ease forwards;
-        }
-        .animate-scale {
-            animation: scaleIn 0.6s ease forwards;
-        }
-        .animate-fade {
-            animation: fadeIn 0.8s ease forwards;
-        }
+        .animate-fade-up { animation: fadeInUp 0.7s ease forwards; }
+        .animate-scale { animation: scaleIn 0.6s ease forwards; }
+        .animate-fade { animation: fadeIn 0.8s ease forwards; }
 
-        /* 顶部导航栏 - 渐变+毛玻璃 */
+        /* 顶部导航 */
         .header {
             position: fixed;
             top: 0;
@@ -99,7 +66,6 @@
             z-index: 999;
             box-shadow: 0 2px 12px rgba(0,0,0,0.15);
         }
-
         .search-box {
             flex: 1;
             height: 36px;
@@ -110,12 +76,11 @@
             font-size: 14px;
             transition: all 0.3s ease;
         }
-
         .search-box:focus {
             box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
         }
 
-        /* 轮播图区域 - 高端圆角+渐变遮罩 */
+        /* 轮播 */
         .banner {
             margin-top: 52px;
             width: 100%;
@@ -123,136 +88,26 @@
             position: relative;
             padding: 12px;
         }
-
         .banner-wrap {
             border-radius: 20px;
             overflow: hidden;
             box-shadow: var(--shadow);
         }
-
         .banner-list {
             display: flex;
             width: 300%;
             transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
+        .banner-item { width: 100%; }
+        .banner-item img { width: 100%; display: block; }
 
-        .banner-item {
-            width: 100%;
-        }
-
-        .banner-item img {
-            width: 100%;
-            display: block;
-            object-fit: cover;
-        }
-
-        /* 分类导航 - 毛玻璃卡片 */
-        .category {
-            margin: 0 12px 16px;
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px 10px;
-            box-shadow: var(--shadow);
-            animation: fadeInUp 0.7s ease 0.2s forwards;
-            opacity: 0;
-        }
-
-        .cate-row {
-            display: flex;
-            justify-content: space-around;
-        }
-
-        .cate-item {
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-
-        .cate-item:active {
-            transform: scale(0.92);
-        }
-
-        .cate-icon {
-            width: 56px;
-            height: 56px;
-            margin: 0 auto 8px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--main), var(--main-light));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 22px;
-            box-shadow: 0 4px 12px rgba(140, 28, 19, 0.25);
-        }
-
-        .cate-text {
-            font-size: 13px;
-            color: var(--text-dark);
-        }
-
-        /* 订单模块 - 滑动Tab + 精致卡片 */
-        .order-module {
-            margin: 0 12px 16px;
-            background: var(--white);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-            animation: fadeInUp 0.7s ease 0.3s forwards;
-            opacity: 0;
-        }
-
-        .order-tab {
-            display: flex;
-            position: relative;
-            height: 40px;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #f0e9e2;
-        }
-
-        .order-tab-item {
-            flex: 1;
-            text-align: center;
-            line-height: 40px;
-            font-size: 14px;
-            color: var(--text-gray);
-            position: relative;
-            z-index: 2;
-            transition: color 0.3s ease;
-        }
-
-        .order-tab-item.active {
-            color: var(--main);
-            font-weight: 500;
-        }
-
-        .tab-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 33.333%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--main), var(--main-light));
-            border-radius: 3px;
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            z-index: 1;
-        }
-
-        .order-empty {
-            text-align: center;
-            color: var(--text-light);
-            padding: 20px 0;
-        }
-
-        /* 商品区域 */
+        /* 商品标题 */
         .goods-head {
             margin: 0 16px 12px;
             display: flex;
             align-items: center;
             animation: slideRight 0.6s ease forwards;
         }
-
         .goods-line {
             width: 4px;
             height: 18px;
@@ -260,20 +115,19 @@
             border-radius: 2px;
             margin-right: 10px;
         }
-
         .goods-title {
             font-size: 16px;
             font-weight: 500;
             color: var(--text-dark);
         }
 
+        /* 商品列表 */
         .goods-container {
             padding: 0 12px;
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
         }
-
         .goods-card {
             width: calc(50% - 6px);
             background: var(--white);
@@ -284,26 +138,16 @@
             animation: scaleIn 0.6s ease forwards;
             opacity: 0;
         }
-
         .goods-card:nth-child(1) { animation-delay: 0.1s; }
         .goods-card:nth-child(2) { animation-delay: 0.2s; }
         .goods-card:nth-child(3) { animation-delay: 0.3s; }
         .goods-card:nth-child(4) { animation-delay: 0.4s; }
-
         .goods-card:active {
             transform: translateY(-4px) scale(0.98);
             box-shadow: 0 12px 30px rgba(140, 28, 19, 0.18);
         }
-
-        .goods-img {
-            width: 100%;
-            display: block;
-        }
-
-        .goods-info {
-            padding: 14px;
-        }
-
+        .goods-img { width: 100%; display: block; }
+        .goods-info { padding: 14px; }
         .goods-name {
             font-size: 13px;
             color: var(--text-dark);
@@ -313,14 +157,12 @@
             overflow: hidden;
             line-height: 1.5;
         }
-
         .goods-price {
             font-size: 16px;
             color: #e03c3c;
             font-weight: 600;
             margin: 10px 0;
         }
-
         .buy-btn {
             display: block;
             width: 100%;
@@ -335,21 +177,16 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 10px rgba(140, 28, 19, 0.2);
         }
-
         .buy-btn:active {
             transform: translateY(2px);
             box-shadow: 0 2px 6px rgba(140, 28, 19, 0.15);
         }
 
-        /* 页面容器切换 */
-        .page {
-            display: none;
-        }
-        .page.active {
-            display: block;
-        }
+        /* 页面容器 */
+        .page { display: none; }
+        .page.active { display: block; }
 
-        /* 会员中心页面 */
+        /* 会员中心 */
         .member-banner {
             margin-top: 52px;
             background: linear-gradient(135deg, var(--main), var(--main-light));
@@ -357,12 +194,10 @@
             color: #fff;
             animation: fadeIn 0.8s ease forwards;
         }
-
         .member-top {
             display: flex;
             align-items: center;
         }
-
         .avatar-box {
             width: 78px;
             height: 78px;
@@ -372,20 +207,17 @@
             box-shadow: 0 6px 16px rgba(0,0,0,0.2);
             margin-right: 18px;
         }
-
         .avatar-box img {
             width: 100%;
             height: 100%;
             border-radius: 50%;
             object-fit: cover;
         }
-
         .member-desc p {
             margin: 6px 0;
             font-size: 14px;
             opacity: 0.95;
         }
-
         .asset-panel {
             margin: 15px 12px;
             background: var(--white);
@@ -395,7 +227,6 @@
             animation: fadeInUp 0.7s ease 0.2s forwards;
             opacity: 0;
         }
-
         .asset-row {
             display: flex;
             justify-content: space-between;
@@ -403,9 +234,58 @@
             border-bottom: 1px solid #f0e9e2;
             font-size: 14px;
         }
+        .asset-row:last-child { border: none; }
 
-        .asset-row:last-child {
-            border: none;
+        /* 订单模块（移入会员中心） */
+        .order-module {
+            margin: 15px 12px;
+            background: var(--white);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            animation: fadeInUp 0.7s ease 0.3s forwards;
+            opacity: 0;
+        }
+        .order-tab {
+            display: flex;
+            position: relative;
+            height: 40px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f0e9e2;
+        }
+        .order-tab-item {
+            flex: 1;
+            text-align: center;
+            line-height: 40px;
+            font-size: 14px;
+            color: var(--text-gray);
+            position: relative;
+            z-index: 2;
+            transition: color 0.3s ease;
+        }
+        .order-tab-item.active {
+            color: var(--main);
+            font-weight: 500;
+        }
+        .tab-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 33.333%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--main), var(--main-light));
+            border-radius: 3px;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 1;
+        }
+        .order-empty {
+            text-align: center;
+            color: var(--text-light);
+            padding: 20px 0;
+        }
+        .order-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
         }
 
         .logout {
@@ -419,26 +299,22 @@
             color: var(--text-gray);
             transition: all 0.3s ease;
         }
+        .logout:active { background: #e4d9cc; }
 
-        .logout:active {
-            background: #e4d9cc;
-        }
-
-        /* 购物车空页面 */
+        /* 购物车 */
         .cart-empty-wrap {
             margin-top: 80px;
             text-align: center;
             color: var(--text-light);
             animation: fadeIn 0.8s ease forwards;
         }
-
         .cart-empty-icon {
             font-size: 60px;
             margin-bottom: 15px;
             opacity: 0.6;
         }
 
-        /* 底部导航栏 - 悬浮质感 */
+        /* 底部导航 */
         .footer-tab {
             position: fixed;
             bottom: 0;
@@ -453,7 +329,6 @@
             box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
             z-index: 999;
         }
-
         .footer-item {
             flex: 1;
             text-align: center;
@@ -461,22 +336,11 @@
             color: var(--text-gray);
             transition: color 0.3s ease;
         }
+        .footer-item.active { color: var(--main); }
+        .footer-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+        .footer-text { font-size: 12px; }
 
-        .footer-item.active {
-            color: var(--main);
-        }
-
-        .footer-icon {
-            font-size: 22px;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .footer-text {
-            font-size: 12px;
-        }
-
-        /* 全局提示弹窗 */
+        /* 提示框 */
         .toast {
             position: fixed;
             left: 50%;
@@ -492,7 +356,6 @@
             transition: all 0.3s ease;
             pointer-events: none;
         }
-
         .toast.show {
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
@@ -500,50 +363,91 @@
     </style>
 </head>
 <body>
-    <!-- 顶部搜索栏 -->
     <header class="header">
         <input class="search-box" placeholder="搜索好酒、名茶、礼盒...">
     </header>
 
-    <!-- 首页页面 -->
+    <!-- 首页 -->
     <div class="page active" id="homePage">
-        <!-- 轮播图 -->
         <div class="banner">
             <div class="banner-wrap">
                 <div class="banner-list" id="bannerList">
-                    <div class="banner-item">
-                        <img src="https://picsum.photos/750/320?wine01" alt="活动海报">
-                    </div>
-                    <div class="banner-item">
-                        <img src="https://picsum.photos/750/320?tea01" alt="活动海报">
-                    </div>
-                    <div class="banner-item">
-                        <img src="https://picsum.photos/750/320?gift01" alt="活动海报">
-                    </div>
+                    <div class="banner-item"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
+                    <div class="banner-item"><img src="https://picsum.photos/750/320?tea01" alt=""></div>
+                    <div class="banner-item"><img src="https://picsum.photos/750/320?gift01" alt=""></div>
                 </div>
             </div>
         </div>
 
-        <!-- 分类导航 -->
-        <div class="category">
-            <div class="cate-row">
-                <div class="cate-item">
-                    <div class="cate-icon">酒</div>
-                    <div class="cate-text">精品白酒</div>
-                </div>
-                <div class="cate-item">
-                    <div class="cate-icon">茶</div>
-                    <div class="cate-text">高山茗茶</div>
-                </div>
-                <div class="cate-item">
-                    <div class="cate-icon">礼</div>
-                    <div class="cate-text">高端礼盒</div>
-                </div>
-                <div class="cate-item">
-                    <div class="cate-icon">特</div>
-                    <div class="cate-text">限时特惠</div>
+        <div class="goods-head">
+            <span class="goods-line"></span>
+            <span class="goods-title">甄选好物 · 人气推荐</span>
+        </div>
+
+        <div class="goods-container">
+            <div class="goods-card">
+                <img class="goods-img" src="https://picsum.photos/320/240?goods01">
+                <div class="goods-info">
+                    <div class="goods-name">陈年酱香纯粮白酒 窖藏500ml</div>
+                    <div class="goods-price" data-price="298">¥ 298.00</div>
+                    <a href="javascript:goPay(1,298)" class="buy-btn">立即购买</a>
                 </div>
             </div>
+            <div class="goods-card">
+                <img class="goods-img" src="https://picsum.photos/320/240?goods02">
+                <div class="goods-info">
+                    <div class="goods-name">明前高山云雾绿茶 春茶250g</div>
+                    <div class="goods-price" data-price="88">¥ 88.00</div>
+                    <a href="javascript:goPay(2,88)" class="buy-btn">立即购买</a>
+                </div>
+            </div>
+            <div class="goods-card">
+                <img class="goods-img" src="https://picsum.photos/320/240?goods03">
+                <div class="goods-info">
+                    <div class="goods-name">烟酒茶组合高端礼盒 送礼首选</div>
+                    <div class="goods-price" data-price="399">¥ 399.00</div>
+                    <a href="javascript:goPay(3,399)" class="buy-btn">立即购买</a>
+                </div>
+            </div>
+            <div class="goods-card">
+                <img class="goods-img" src="https://picsum.photos/320/240?goods04">
+                <div class="goods-info">
+                    <div class="goods-name">52度浓香型老酒 纯粮酿造</div>
+                    <div class="goods-price" data-price="168">¥ 168.00</div>
+                    <a href="javascript:goPay(4,168)" class="buy-btn">立即购买</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 购物车 -->
+    <div class="page" id="cartPage">
+        <div class="cart-empty-wrap">
+            <div class="cart-empty-icon">🛒</div>
+            <p>购物车暂时空空如也</p>
+            <p style="margin-top:8px;font-size:13px;">前往首页挑选心仪好物吧</p>
+        </div>
+    </div>
+
+    <!-- 会员中心（包含订单） -->
+    <div class="page" id="memberPage">
+        <div class="member-banner">
+            <div class="member-top">
+                <div class="avatar-box">
+                    <img src="https://picsum.photos/120/120?avatar" alt="头像">
+                </div>
+                <div class="member-desc" id="memberInfo">
+                    <p>会员ID：--</p>
+                    <p>专属邀请码：--</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="asset-panel">
+            <div class="asset-row"><span>总算力</span><span id="powerVal">0</span></div>
+            <div class="asset-row"><span>数字资产</span><span id="assetVal">0.00</span></div>
+            <div class="asset-row"><span>酒豆</span><span id="beanVal">0</span></div>
+            <div class="asset-row"><span>酒令(支付)</span><span id="tokenVal">0</span></div>
         </div>
 
         <!-- 订单区域 -->
@@ -559,95 +463,10 @@
             </div>
         </div>
 
-        <!-- 商品标题 -->
-        <div class="goods-head">
-            <span class="goods-line"></span>
-            <span class="goods-title">甄选好物 · 人气推荐</span>
-        </div>
-
-        <!-- 商品列表 -->
-        <div class="goods-container">
-            <div class="goods-card">
-                <img class="goods-img" src="https://picsum.photos/320/240?goods01">
-                <div class="goods-info">
-                    <div class="goods-name">陈年酱香纯粮白酒 窖藏500ml</div>
-                    <div class="goods-price">¥ 298.00</div>
-                    <a href="javascript:buyGoods(1)" class="buy-btn">立即购买</a>
-                </div>
-            </div>
-            <div class="goods-card">
-                <img class="goods-img" src="https://picsum.photos/320/240?goods02">
-                <div class="goods-info">
-                    <div class="goods-name">明前高山云雾绿茶 春茶250g</div>
-                    <div class="goods-price">¥ 88.00</div>
-                    <a href="javascript:buyGoods(2)" class="buy-btn">立即购买</a>
-                </div>
-            </div>
-            <div class="goods-card">
-                <img class="goods-img" src="https://picsum.photos/320/240?goods03">
-                <div class="goods-info">
-                    <div class="goods-name">烟酒茶组合高端礼盒 送礼首选</div>
-                    <div class="goods-price">¥ 399.00</div>
-                    <a href="javascript:buyGoods(3)" class="buy-btn">立即购买</a>
-                </div>
-            </div>
-            <div class="goods-card">
-                <img class="goods-img" src="https://picsum.photos/320/240?goods04">
-                <div class="goods-info">
-                    <div class="goods-name">52度浓香型老酒 纯粮酿造</div>
-                    <div class="goods-price">¥ 168.00</div>
-                    <a href="javascript:buyGoods(4)" class="buy-btn">立即购买</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 购物车页面 -->
-    <div class="page" id="cartPage">
-        <div class="cart-empty-wrap">
-            <div class="cart-empty-icon">🛒</div>
-            <p>购物车暂时空空如也</p>
-            <p style="margin-top:8px;font-size:13px;">前往首页挑选心仪好物吧</p>
-        </div>
-    </div>
-
-    <!-- 会员中心页面 -->
-    <div class="page" id="memberPage">
-        <div class="member-banner">
-            <div class="member-top">
-                <div class="avatar-box">
-                    <img src="https://picsum.photos/120/120?avatar" alt="会员头像">
-                </div>
-                <div class="member-desc" id="memberInfo">
-                    <p>会员ID：--</p>
-                    <p>专属邀请码：--</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="asset-panel">
-            <div class="asset-row">
-                <span>总算力</span>
-                <span id="powerVal">100</span>
-            </div>
-            <div class="asset-row">
-                <span>数字资产</span>
-                <span id="assetVal">0.00</span>
-            </div>
-            <div class="asset-row">
-                <span>酒豆</span>
-                <span id="beanVal">88</span>
-            </div>
-            <div class="asset-row">
-                <span>酒令</span>
-                <span id="tokenVal">10</span>
-            </div>
-        </div>
-
         <button class="logout" onclick="logout()">退出登录</button>
     </div>
 
-    <!-- 底部导航栏 -->
+    <!-- 底部导航 -->
     <div class="footer-tab">
         <div class="footer-item active" data-page="home">
             <span class="footer-icon">🏠</span>
@@ -663,11 +482,13 @@
         </div>
     </div>
 
-    <!-- 提示弹窗 -->
     <div class="toast" id="toast"></div>
 
     <script>
-        // 轮播图自动播放
+        // 全局配置：算力赠送倍数（可自行修改）
+        const POWER_RATIO = 2;
+
+        // 轮播
         let bannerIndex = 0;
         const bannerList = document.getElementById('bannerList');
         function autoBanner() {
@@ -677,7 +498,7 @@
         }
         setInterval(autoBanner, 3000);
 
-        // 底部导航切换页面
+        // 底部导航切换
         const footerItems = document.querySelectorAll('.footer-item');
         const pages = document.querySelectorAll('.page');
         footerItems.forEach(item => {
@@ -686,7 +507,6 @@
                 footerItems.forEach(n => n.classList.remove('active'));
                 this.classList.add('active');
                 pages.forEach(p => p.classList.remove('active'));
-
                 if (pageType === 'home') {
                     document.getElementById('homePage').classList.add('active');
                 } else if (pageType === 'cart') {
@@ -694,20 +514,22 @@
                 } else if (pageType === 'member') {
                     document.getElementById('memberPage').classList.add('active');
                     loadMemberData();
+                    switchOrderTab(0);
                 }
             })
         });
 
-        // 订单Tab滑动切换
+        // 订单Tab
         const orderTabs = document.querySelectorAll('.order-tab-item');
         const tabLine = document.querySelector('.tab-line');
+        function switchOrderTab(idx) {
+            orderTabs.forEach(t => t.classList.remove('active'));
+            orderTabs[idx].classList.add('active');
+            tabLine.style.transform = `translateX(${idx * 100}%)`;
+            renderOrder(idx);
+        }
         orderTabs.forEach((tab, idx) => {
-            tab.addEventListener('click', function () {
-                orderTabs.forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                tabLine.style.transform = `translateX(${idx * 100}%)`;
-                document.getElementById('orderContent').innerHTML = '<div class="order-empty">暂无相关订单</div>';
-            })
+            tab.addEventListener('click', () => switchOrderTab(idx));
         });
 
         // 提示框
@@ -718,12 +540,12 @@
             setTimeout(() => toast.classList.remove('show'), 1800);
         }
 
-        // 商品购买
-        function buyGoods(id) {
-            showToast('下单成功，已进入待发货订单');
+        // 跳转付款页
+        function goPay(goodsId, price) {
+            location.href = `pay.html?gid=${goodsId}&price=${price}`;
         }
 
-        // 加载会员数据
+        // 加载会员数据 & 渲染订单
         function loadMemberData() {
             let user = JSON.parse(localStorage.getItem("loginUser") || "{}");
             if (!user.phone) return;
@@ -731,10 +553,36 @@
                 <p>会员ID：${user.phone}</p>
                 <p>专属邀请码：${user.inviteCode || user.phone}</p>
             `;
-            document.getElementById('powerVal').innerText = user.power || "100";
+            document.getElementById('powerVal').innerText = user.power || "0";
             document.getElementById('assetVal').innerText = user.asset || "0.00";
-            document.getElementById('beanVal').innerText = user.bean || "88";
-            document.getElementById('tokenVal').innerText = user.token || "10";
+            document.getElementById('beanVal').innerText = user.bean || "0";
+            document.getElementById('tokenVal').innerText = user.token || "0";
+            switchOrderTab(0);
+        }
+
+        // 渲染订单
+        function renderOrder(tabIndex) {
+            let user = JSON.parse(localStorage.getItem("loginUser") || "{}");
+            const orderList = user.orderList || [];
+            let type = ['wait','send','done'][tabIndex];
+            let filterList = orderList.filter(item => item.status === type);
+            const content = document.getElementById('orderContent');
+            if (filterList.length === 0) {
+                content.innerHTML = '<div class="order-empty">暂无相关订单</div>';
+                return;
+            }
+            let html = '';
+            filterList.forEach(item => {
+                html += `
+                    <div class="order-item">
+                        <div>商品编号：${item.goodsId}</div>
+                        <div>支付金额：¥${item.price}</div>
+                        <div>下单时间：${item.time}</div>
+                        <div>状态：${item.status==='wait'?'待发货':item.status==='send'?'已发货':'已收货'}</div>
+                    </div>
+                `;
+            });
+            content.innerHTML = html;
         }
 
         // 退出登录
@@ -744,7 +592,7 @@
             setTimeout(() => location.href = "index.html", 1200);
         }
 
-        // 页面初始化：未登录跳转回登录页
+        // 登录检测
         window.onload = function () {
             let user = localStorage.getItem("loginUser");
             if (!user) {
