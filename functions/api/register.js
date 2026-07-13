@@ -1,3 +1,4 @@
+// functions/api/register.js
 async function hashPwd(pwd) {
   const data = new TextEncoder().encode(pwd + 'SALT_WINE_TEA');
   const hash = await crypto.subtle.digest('SHA-256', data);
