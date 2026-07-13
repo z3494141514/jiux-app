@@ -5,8 +5,8 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ code: 1, msg: '参数不全，请填写收货地址' }), { status: 400 });
   }
 
-  // 获取商品信息（含支付方式）
-  const goods = await env.DB.prepare("SELECT required_level, upgrade_level, pay_type FROM goods WHERE id = ?").bind(goodsId).first();
+  // 获取商品信息（含支付方式、自定义算力倍数）
+  const goods = await env.DB.prepare("SELECT required_level, upgrade_level, pay_type, power_ratio FROM goods WHERE id = ?").bind(goodsId).first();
   if (!goods) return new Response(JSON.stringify({ code: 1, msg: '商品不存在' }), { status: 400 });
 
   const buyer = await env.DB.prepare("SELECT level, token, bean, parent_phone FROM users WHERE phone = ?").bind(phone).first();
@@ -29,8 +29,14 @@ export async function onRequest({ request, env }) {
     }
   }
 
-  const cfg = await env.DB.prepare("SELECT value FROM config WHERE key = 'powerRatio'").first();
-  const powerRatio = Number(cfg?.value) || 2;
+  // 赠送算力倍数：优先使用商品自定义，否则全局
+  let powerRatio;
+  if (goods.power_ratio != null && goods.power_ratio > 0) {
+    powerRatio = Number(goods.power_ratio);
+  } else {
+    const cfg = await env.DB.prepare("SELECT value FROM config WHERE key = 'powerRatio'").first();
+    powerRatio = Number(cfg?.value) || 2;
+  }
   const addPower = Math.floor(price * powerRatio);
 
   const statements = [];
@@ -48,7 +54,7 @@ export async function onRequest({ request, env }) {
     );
   }
 
-  // 插入订单（附带支付方式）
+  // 插入订单（含地址、支付方式）
   statements.push(
     env.DB.prepare("INSERT INTO orders (phone, goods_id, price, address, pay_type) VALUES (?, ?, ?, ?, ?)")
       .bind(phone, goodsId, price, address, payType)
@@ -58,7 +64,7 @@ export async function onRequest({ request, env }) {
     statements.push(env.DB.prepare("UPDATE users SET level = ? WHERE phone = ?").bind(goods.upgrade_level, phone));
   }
 
-  // 等级返利（酒令）—— 只有支付方式为酒令时才可能有返利
+  // 等级返利（酒令）
   if (payType === 'token') {
     const buyerLevelInfo = await env.DB.prepare("SELECT reward_percent FROM member_levels WHERE level = ?").bind(buyer.level).first();
     const rewardPercent = buyerLevelInfo?.reward_percent || 0;
