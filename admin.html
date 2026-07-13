@@ -1,57 +1,214 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>后台管理 - 酒蕴茶乡</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 20px; }
-    textarea { width: 100%; height: 350px; padding: 10px; font-size: 14px; }
-    button { padding: 10px 20px; margin-right: 10px; cursor: pointer; font-size: 16px; }
-    #status { margin-bottom: 15px; color: #666; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统管理后台</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei;}
+        body{background:#f5f7fa;padding:20px;}
+        .container{max-width:1200px;margin:0 auto;}
+        .header{background:#8c1c13;color:#fff;padding:16px 20px;border-radius:8px;margin-bottom:20px;}
+        .tab-box{display:flex;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:20px;}
+        .tab-item{padding:14px 24px;cursor:pointer;border:none;background:transparent;}
+        .tab-item.active{background:#8c1c13;color:#fff;}
+        .panel{background:#fff;padding:20px;border-radius:8px;display:none;}
+        .panel.active{display:block;}
+        .form-item{margin-bottom:16px;}
+        label{display:block;margin-bottom:6px;color:#333;}
+        input{width:300px;height:38px;padding:0 10px;border:1px solid #ccc;border-radius:4px;}
+        button{padding:8px 20px;background:#8c1c13;color:#fff;border:none;border-radius:4px;cursor:pointer;}
+        table{width:100%;border-collapse:collapse;margin-top:10px;}
+        th,td{border:1px solid #eee;padding:10px;text-align:center;}
+        th{background:#f9f9f9;}
+        .tip{color:#666;margin:8px 0;font-size:13px;}
+    </style>
 </head>
 <body>
-  <h1>后台管理 - 数据编辑</h1>
-  <div id="status">准备就绪</div>
-  <textarea id="editor" placeholder="在这里编辑JSON数据..."></textarea>
-  <br><br>
-  <button onclick="loadData()">读取当前数据</button>
-  <button onclick="saveData()">保存修改</button>
-  <button onclick="location.reload()">刷新页面</button>
+    <div class="container">
+        <div class="header"><h2>酒蕴茶乡 管理后台</h2></div>
 
-  <script>
-    const API_URL = "/api/data";
-    const statusEl = document.getElementById("status");
-    const editorEl = document.getElementById("editor");
+        <div class="tab-box">
+            <button class="tab-item active" data-tab="config">全局参数配置</button>
+            <button class="tab-item" data-tab="user">会员管理</button>
+            <button class="tab-item" data-tab="order">订单管理</button>
+            <button class="tab-item" data-tab="log">算力释放记录</button>
+        </div>
 
-    async function loadData() {
-      statusEl.textContent = "读取中...";
-      try {
-        const res = await fetch(API_URL);
-        const json = await res.json();
-        editorEl.value = json.data || "{}";
-        statusEl.textContent = "数据已加载";
-      } catch (e) {
-        statusEl.textContent = "读取失败：" + e.message;
-      }
-    }
+        <!-- 1. 全局配置面板 -->
+        <div class="panel active" id="panel-config">
+            <h3>业务参数设置（全部前端实时生效）</h3>
+            <p class="tip">修改后点击【保存配置】立即生效</p>
+            <div class="form-item">
+                <label>购买赠送算力倍数</label>
+                <input type="number" id="powerRatio" step="0.1">
+            </div>
+            <div class="form-item">
+                <label>每日算力释放开始时间（小时 0-23）</label>
+                <input type="number" id="releaseHour" min="0" max="23">
+            </div>
+            <div class="form-item">
+                <label>每日算力释放比例（0.01=1%）</label>
+                <input type="number" id="releaseRate" step="0.01">
+            </div>
+            <div class="form-item">
+                <label>数字资产 转 酒豆 比例（1:N）</label>
+                <input type="number" id="assetToBeanRate">
+            </div>
+            <button onclick="saveConfig()">保存配置</button>
+        </div>
 
-    async function saveData() {
-      statusEl.textContent = "保存中...";
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: editorEl.value })
-        });
-        statusEl.textContent = "保存成功！前台将同步更新";
-      } catch (e) {
-        statusEl.textContent = "保存失败：" + e.message;
-      }
-    }
+        <!-- 2. 会员管理面板 -->
+        <div class="panel" id="panel-user">
+            <h3>全部会员列表</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>会员ID(手机号)</th>
+                        <th>邀请码</th>
+                        <th>总算力</th>
+                        <th>数字资产</th>
+                        <th>酒豆</th>
+                        <th>酒令</th>
+                        <th>注册时间</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+            </table>
+        </div>
 
-    // 页面加载时自动读取
-    loadData();
-  </script>
+        <!-- 3. 订单管理面板 -->
+        <div class="panel" id="panel-order">
+            <h3>全部订单列表</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>所属会员</th>
+                        <th>商品编号</th>
+                        <th>支付金额</th>
+                        <th>订单状态</th>
+                        <th>下单时间</th>
+                    </tr>
+                </thead>
+                <tbody id="orderTable"></tbody>
+            </table>
+        </div>
+
+        <!-- 4. 算力释放记录 -->
+        <div class="panel" id="panel-log">
+            <h3>每日算力释放执行记录</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>执行日期</th>
+                        <th>释放人数</th>
+                        <th>执行时间</th>
+                    </tr>
+                </thead>
+                <tbody id="logTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API = "/api/data";
+        let allData = {};
+
+        // Tab切换
+        document.querySelectorAll('.tab-item').forEach(tab=>{
+            tab.addEventListener('click',function(){
+                document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+                this.classList.add('active');
+                let t = this.dataset.tab;
+                document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+                document.getElementById('panel-'+t).classList.add('active');
+                if(t==='user') renderUser();
+                if(t==='order') renderOrder();
+                if(t==='log') renderLog();
+            })
+        })
+
+        // 加载全部数据
+        async function loadData(){
+            let res = await fetch(API);
+            let json = await res.json();
+            allData = JSON.parse(json.data);
+            // 回填配置
+            document.getElementById('powerRatio').value = allData.config.powerRatio;
+            document.getElementById('releaseHour').value = allData.config.releaseHour;
+            document.getElementById('releaseRate').value = allData.config.releaseRate;
+            document.getElementById('assetToBeanRate').value = allData.config.assetToBeanRate;
+        }
+
+        // 保存配置
+        async function saveConfig(){
+            allData.config.powerRatio = parseFloat(document.getElementById('powerRatio').value);
+            allData.config.releaseHour = parseInt(document.getElementById('releaseHour').value);
+            allData.config.releaseRate = parseFloat(document.getElementById('releaseRate').value);
+            allData.config.assetToBeanRate = parseInt(document.getElementById('assetToBeanRate').value);
+            await saveAllData();
+            alert("配置保存成功！");
+        }
+
+        // 保存整体数据
+        async function saveAllData(){
+            await fetch(API,{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({data:JSON.stringify(allData)})
+            })
+        }
+
+        // 渲染会员列表
+        function renderUser(){
+            let html = "";
+            allData.users.forEach(u=>{
+                html += `<tr>
+                    <td>${u.phone}</td>
+                    <td>${u.inviteCode}</td>
+                    <td>${u.power}</td>
+                    <td>${u.asset}</td>
+                    <td>${u.bean}</td>
+                    <td>${u.token}</td>
+                    <td>${u.createTime}</td>
+                </tr>`;
+            })
+            document.getElementById('userTable').innerHTML = html;
+        }
+
+        // 渲染订单
+        function renderOrder(){
+            let html = "";
+            allData.users.forEach(u=>{
+                if(!u.orderList) return;
+                u.orderList.forEach(o=>{
+                    let status = o.status==='wait'?'待发货':o.status==='send'?'已发货':'已收货';
+                    html += `<tr>
+                        <td>${u.phone}</td>
+                        <td>${o.goodsId}</td>
+                        <td>${o.price}</td>
+                        <td>${status}</td>
+                        <td>${o.time}</td>
+                    </tr>`;
+                })
+            })
+            document.getElementById('orderTable').innerHTML = html;
+        }
+
+        // 渲染释放记录
+        function renderLog(){
+            let html = "";
+            allData.releaseLog.forEach(l=>{
+                html += `<tr>
+                    <td>${l.date}</td>
+                    <td>${l.userCount}</td>
+                    <td>${l.fullTime}</td>
+                </tr>`;
+            })
+            document.getElementById('logTable').innerHTML = html;
+        }
+
+        window.onload = loadData;
+    </script>
 </body>
 </html>

@@ -52,7 +52,6 @@
         .animate-scale { animation: scaleIn 0.6s ease forwards; }
         .animate-fade { animation: fadeIn 0.8s ease forwards; }
 
-        /* 顶部导航 */
         .header {
             position: fixed;
             top: 0;
@@ -80,7 +79,6 @@
             box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
         }
 
-        /* 轮播 */
         .banner {
             margin-top: 52px;
             width: 100%;
@@ -101,7 +99,6 @@
         .banner-item { width: 100%; }
         .banner-item img { width: 100%; display: block; }
 
-        /* 商品标题 */
         .goods-head {
             margin: 0 16px 12px;
             display: flex;
@@ -121,7 +118,6 @@
             color: var(--text-dark);
         }
 
-        /* 商品列表 */
         .goods-container {
             padding: 0 12px;
             display: flex;
@@ -182,11 +178,9 @@
             box-shadow: 0 2px 6px rgba(140, 28, 19, 0.15);
         }
 
-        /* 页面容器 */
         .page { display: none; }
         .page.active { display: block; }
 
-        /* 会员中心 */
         .member-banner {
             margin-top: 52px;
             background: linear-gradient(135deg, var(--main), var(--main-light));
@@ -235,8 +229,16 @@
             font-size: 14px;
         }
         .asset-row:last-child { border: none; }
+        .exchange-btn {
+            margin-top:12px;
+            width:100%;
+            height:38px;
+            background:#8c1c13;
+            color:#fff;
+            border:none;
+            border-radius:10px;
+        }
 
-        /* 订单模块（移入会员中心） */
         .order-module {
             margin: 15px 12px;
             background: var(--white);
@@ -301,7 +303,6 @@
         }
         .logout:active { background: #e4d9cc; }
 
-        /* 购物车 */
         .cart-empty-wrap {
             margin-top: 80px;
             text-align: center;
@@ -314,7 +315,6 @@
             opacity: 0.6;
         }
 
-        /* 底部导航 */
         .footer-tab {
             position: fixed;
             bottom: 0;
@@ -340,7 +340,6 @@
         .footer-icon { font-size: 22px; display: block; margin-bottom: 4px; }
         .footer-text { font-size: 12px; }
 
-        /* 提示框 */
         .toast {
             position: fixed;
             left: 50%;
@@ -367,7 +366,6 @@
         <input class="search-box" placeholder="搜索好酒、名茶、礼盒...">
     </header>
 
-    <!-- 首页 -->
     <div class="page active" id="homePage">
         <div class="banner">
             <div class="banner-wrap">
@@ -420,7 +418,6 @@
         </div>
     </div>
 
-    <!-- 购物车 -->
     <div class="page" id="cartPage">
         <div class="cart-empty-wrap">
             <div class="cart-empty-icon">🛒</div>
@@ -429,7 +426,6 @@
         </div>
     </div>
 
-    <!-- 会员中心（包含订单） -->
     <div class="page" id="memberPage">
         <div class="member-banner">
             <div class="member-top">
@@ -448,9 +444,9 @@
             <div class="asset-row"><span>数字资产</span><span id="assetVal">0.00</span></div>
             <div class="asset-row"><span>酒豆</span><span id="beanVal">0</span></div>
             <div class="asset-row"><span>酒令(支付)</span><span id="tokenVal">0</span></div>
+            <button class="exchange-btn" onclick="assetToBean()">数字资产兑换酒豆</button>
         </div>
 
-        <!-- 订单区域 -->
         <div class="order-module">
             <div class="order-tab">
                 <div class="order-tab-item active" data-order="wait">待发货</div>
@@ -466,7 +462,6 @@
         <button class="logout" onclick="logout()">退出登录</button>
     </div>
 
-    <!-- 底部导航 -->
     <div class="footer-tab">
         <div class="footer-item active" data-page="home">
             <span class="footer-icon">🏠</span>
@@ -485,8 +480,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // 全局配置：算力赠送倍数（可自行修改）
-        const POWER_RATIO = 2;
+        const API = "/api/data";
+        let globalConfig = {};
+        let loginUser = null;
 
         // 轮播
         let bannerIndex = 0;
@@ -498,7 +494,108 @@
         }
         setInterval(autoBanner, 3000);
 
-        // 底部导航切换
+        // 提示框
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            toast.innerText = text;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1800);
+        }
+
+        // 加载全局配置 + 执行每日算力释放
+        async function loadConfigAndRelease() {
+            let res = await fetch(API);
+            let json = await res.json();
+            let allData = JSON.parse(json.data);
+            globalConfig = allData.config;
+            await doDailyRelease(allData);
+        }
+
+        // 每日算力释放逻辑
+        async function doDailyRelease(allData) {
+            const now = new Date();
+            const todayStr = now.toLocaleDateString();
+            const nowHour = now.getHours();
+            const releaseHour = globalConfig.releaseHour;
+            const rate = globalConfig.releaseRate;
+
+            // 判断今日是否已执行释放
+            let todayLog = allData.releaseLog.find(x => x.date === todayStr);
+            if (todayLog) return;
+            // 判断是否到设置小时
+            if (nowHour < releaseHour) return;
+
+            let count = 0;
+            allData.users.forEach(user => {
+                let power = parseFloat(user.power) || 0;
+                if (power <= 0) return;
+                let addAsset = power * rate;
+                let asset = parseFloat(user.asset) || 0;
+                user.asset = (asset + addAsset).toFixed(2);
+                count++;
+            });
+
+            // 新增释放记录
+            allData.releaseLog.push({
+                date: todayStr,
+                userCount: count,
+                fullTime: now.toLocaleString()
+            });
+
+            // 保存数据
+            await fetch(API, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data: JSON.stringify(allData) })
+            });
+            // 刷新本地用户
+            refreshLocalUser();
+        }
+
+        // 刷新本地登录用户
+        async function refreshLocalUser() {
+            let res = await fetch(API);
+            let json = await res.json();
+            let allData = JSON.parse(json.data);
+            let userStr = localStorage.getItem("loginUser");
+            if(!userStr) return;
+            let u = JSON.parse(userStr);
+            let newUser = allData.users.find(x => x.phone === u.phone);
+            if(newUser) localStorage.setItem("loginUser", JSON.stringify(newUser));
+        }
+
+        // 资产兑换：数字资产 => 酒豆
+        async function assetToBean() {
+            let userStr = localStorage.getItem("loginUser");
+            if(!userStr) return;
+            let user = JSON.parse(userStr);
+            let asset = parseFloat(user.asset) || 0;
+            if(asset <= 0) {
+                showToast("暂无数字资产可兑换");
+                return;
+            }
+            let rate = globalConfig.assetToBeanRate;
+            let addBean = Math.floor(asset * rate);
+            user.asset = "0.00";
+            user.bean = (parseInt(user.bean) || 0) + addBean;
+
+            // 更新后端
+            let res = await fetch(API);
+            let json = await res.json();
+            let allData = JSON.parse(json.data);
+            let idx = allData.users.findIndex(x=>x.phone === user.phone);
+            if(idx > -1) allData.users[idx] = user;
+            await fetch(API,{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({data:JSON.stringify(allData)})
+            });
+            localStorage.setItem("loginUser", JSON.stringify(user));
+            loadMemberData();
+            showToast(`兑换成功！获得 ${addBean} 酒豆`);
+        }
+
+        // 底部导航
         const footerItems = document.querySelectorAll('.footer-item');
         const pages = document.querySelectorAll('.page');
         footerItems.forEach(item => {
@@ -532,23 +629,16 @@
             tab.addEventListener('click', () => switchOrderTab(idx));
         });
 
-        // 提示框
-        function showToast(text) {
-            const toast = document.getElementById('toast');
-            toast.innerText = text;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 1800);
-        }
-
         // 跳转付款页
         function goPay(goodsId, price) {
             location.href = `pay.html?gid=${goodsId}&price=${price}`;
         }
 
-        // 加载会员数据 & 渲染订单
+        // 加载会员数据
         function loadMemberData() {
             let user = JSON.parse(localStorage.getItem("loginUser") || "{}");
             if (!user.phone) return;
+            loginUser = user;
             document.getElementById('memberInfo').innerHTML = `
                 <p>会员ID：${user.phone}</p>
                 <p>专属邀请码：${user.inviteCode || user.phone}</p>
@@ -592,12 +682,13 @@
             setTimeout(() => location.href = "index.html", 1200);
         }
 
-        // 登录检测
-        window.onload = function () {
+        window.onload = async function () {
             let user = localStorage.getItem("loginUser");
             if (!user) {
                 location.href = "index.html";
+                return;
             }
+            await loadConfigAndRelease();
         }
     </script>
 </body>
