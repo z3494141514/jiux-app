@@ -8,7 +8,7 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ code: 1, msg: '参数错误，请填写完整信息' }), { status: 400 });
   }
 
-  // 检查用户酒豆余额
+  // 检查用户酒豆余额并立即扣除
   const user = await env.DB.prepare("SELECT bean FROM users WHERE phone = ?").bind(phone).first();
   if (!user) {
     return new Response(JSON.stringify({ code: 1, msg: '用户不存在' }), { status: 400 });
@@ -17,13 +17,20 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ code: 2, msg: '酒豆余额不足' }), { status: 400 });
   }
 
-  // 生成北京时间字符串
+  // 生成北京时间
   const now = new Date();
   const applyTime = now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
 
-  // 写入提现记录（不立即扣豆，待后台审核通过后扣减）
-  await env.DB.prepare("INSERT INTO withdraw_log (phone, bean_num, address, apply_time) VALUES (?, ?, ?, ?)")
-    .bind(phone, beanNum, address, applyTime).run();
+  // 事务：扣除酒豆 + 插入提现记录
+  const batchResult = await env.DB.batch([
+    env.DB.prepare("UPDATE users SET bean = bean - ? WHERE phone = ? AND bean >= ?").bind(beanNum, phone, beanNum),
+    env.DB.prepare("INSERT INTO withdraw_log (phone, bean_num, address, apply_time) VALUES (?, ?, ?, ?)")
+      .bind(phone, beanNum, address, applyTime)
+  ]);
+
+  if (batchResult[0].meta.changes === 0) {
+    return new Response(JSON.stringify({ code: 2, msg: '酒豆余额不足或扣款失败' }), { status: 400 });
+  }
 
   return new Response(JSON.stringify({ code: 0, msg: '提现申请已提交' }), {
     headers: { 'Content-Type': 'application/json' }
