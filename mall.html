@@ -3,357 +3,463 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>酒蕴茶乡 - 商城首页</title>
+    <title>酒蕴茶乡 · 尊享商城</title>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; font-family: "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; }
-        :root { --main:#8c1c13; --main-light:#b83030; --text-dark:#222; --text-gray:#666; --text-light:#999; --bg-page:#f8f3ed; --white:#fff; --shadow:0 8px 24px rgba(140,28,19,0.12); }
-        body { background:var(--bg-page); color:var(--text-dark); font-size:14px; padding-bottom:70px; overflow-x:hidden; }
-        @keyframes scaleIn { from { opacity:0; transform:scale(0.94); } to { opacity:1; transform:scale(1); } }
-        .header { position:fixed; top:0; left:0; width:100%; height:52px; background:linear-gradient(90deg,var(--main),var(--main-light)); display:flex; align-items:center; padding:0 16px; z-index:999; box-shadow:0 2px 12px rgba(0,0,0,0.15); }
-        .search-box { flex:1; height:36px; background:rgba(255,255,255,0.95); border:none; border-radius:18px; padding:0 20px; font-size:14px; }
-        .banner { margin-top:52px; width:100%; padding:12px; }
-        .banner-wrap { border-radius:20px; overflow:hidden; box-shadow:var(--shadow); }
-        .banner-list { display:flex; width:300%; transition:transform 0.5s; }
-        .banner-item { width:100%; } .banner-item img { width:100%; display:block; }
-        .goods-head { margin:0 16px 12px; display:flex; align-items:center; }
-        .goods-line { width:4px; height:18px; background:linear-gradient(var(--main),var(--main-light)); border-radius:2px; margin-right:10px; }
-        .goods-title { font-size:16px; font-weight:500; }
-        .goods-container { padding:0 12px; display:flex; flex-wrap:wrap; gap:12px; }
-        .goods-card { width:calc(50% - 6px); background:var(--white); border-radius:20px; overflow:hidden; box-shadow:var(--shadow); transition:all 0.35s; animation:scaleIn 0.6s ease forwards; opacity:0; }
-        .goods-card:nth-child(1){animation-delay:0.1s}.goods-card:nth-child(2){animation-delay:0.2s}.goods-card:nth-child(3){animation-delay:0.3s}.goods-card:nth-child(4){animation-delay:0.4s}
-        .goods-card:active { transform:translateY(-4px) scale(0.98); }
-        .goods-img { width:100%; display:block; }
-        .goods-info { padding:14px; }
-        .goods-name { font-size:13px; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.5; }
-        .goods-price { font-size:16px; color:#e03c3c; font-weight:600; margin:10px 0; }
-        .buy-btn { display:block; width:100%; height:36px; line-height:36px; text-align:center; background:linear-gradient(135deg,var(--main),var(--main-light)); color:#fff; border-radius:10px; text-decoration:none; font-size:14px; }
-        .page { display:none; } .page.active { display:block; }
-        .member-banner { margin-top:52px; background:linear-gradient(135deg,var(--main),var(--main-light)); padding:35px 20px 25px; color:#fff; }
-        .member-top { display:flex; align-items:center; }
-        .avatar-box { width:78px; height:78px; border-radius:50%; background:#fff; padding:3px; box-shadow:0 6px 16px rgba(0,0,0,0.2); margin-right:18px; }
-        .avatar-box img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
-        .asset-panel { margin:15px 12px; background:var(--white); border-radius:20px; padding:22px; box-shadow:var(--shadow); }
-        .asset-row { display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0e9e2; font-size:14px; }
-        .asset-row:last-child { border:none; }
-        .btn-row { display:flex; gap:10px; margin-top:12px; }
-        .exchange-btn,.withdraw-btn { flex:1; height:38px; background:#8c1c13; color:#fff; border:none; border-radius:10px; }
-        .order-module,.withdraw-log-module { margin:15px 12px; background:var(--white); border-radius:20px; padding:20px; box-shadow:var(--shadow); }
-        .order-tab { display:flex; position:relative; height:40px; margin-bottom:15px; border-bottom:1px solid #f0e9e2; }
-        .order-tab-item { flex:1; text-align:center; line-height:40px; color:var(--text-gray); transition:color 0.3s; }
-        .order-tab-item.active { color:var(--main); font-weight:500; }
-        .tab-line { position:absolute; bottom:0; left:0; width:33.333%; height:3px; background:linear-gradient(90deg,var(--main),var(--main-light)); border-radius:3px; transition:transform 0.4s; }
-        .order-empty { text-align:center; color:var(--text-light); padding:20px 0; }
-        .order-item { padding:10px 0; border-bottom:1px solid #f5f5f5; }
-        .logout { width:calc(100% - 24px); margin:25px 12px; height:48px; background:#f0e9e2; border:none; border-radius:14px; font-size:15px; color:var(--text-gray); }
-        .cart-empty-wrap { margin-top:80px; text-align:center; color:var(--text-light); }
-        .footer-tab { position:fixed; bottom:0; left:0; width:100%; height:62px; background:rgba(255,255,255,0.95); backdrop-filter:blur(12px); display:flex; border-top:1px solid #f0e9e2; box-shadow:0 -2px 12px rgba(0,0,0,0.06); z-index:999; }
-        .footer-item { flex:1; text-align:center; padding-top:8px; color:var(--text-gray); }
-        .footer-item.active { color:var(--main); } .footer-icon { font-size:22px; display:block; margin-bottom:4px; } .footer-text { font-size:12px; }
-        .toast { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(0.85); background:rgba(0,0,0,0.75); color:#fff; padding:14px 28px; border-radius:14px; z-index:9999; opacity:0; transition:all 0.3s; pointer-events:none; }
+        :root {
+            --primary: #8c1c13;
+            --gold: #c9a15e;
+            --bg: #faf7f2;
+            --card-bg: #ffffff;
+            --text: #2c2c2c;
+            --shadow: 0 10px 30px rgba(0,0,0,0.06);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding-bottom: 80px;
+        }
+        .header {
+            position: sticky; top:0; z-index:100;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(20px);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .header .logo {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin-right: 20px;
+        }
+        .search-box {
+            flex:1;
+            height: 38px;
+            background: rgba(0,0,0,0.03);
+            border:1px solid rgba(0,0,0,0.08);
+            border-radius: 20px;
+            padding: 0 18px;
+            font-size: 14px;
+        }
+        .page { display:none; }
+        .page.active { display:block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+        .banner {
+            margin: 16px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .banner img { width:100%; display:block; }
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin: 24px 16px 16px;
+        }
+        .section-title .line {
+            width:4px; height:18px;
+            background: linear-gradient(var(--primary), var(--gold));
+            border-radius:2px;
+            margin-right:10px;
+        }
+        .section-title h3 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .goods-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            padding: 0 16px;
+        }
+        .goods-card {
+            background: var(--card-bg);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .goods-card:active { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(0,0,0,0.1); }
+        .goods-card img { width:100%; display:block; }
+        .goods-info { padding: 14px; }
+        .goods-name {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .goods-price {
+            font-size: 18px;
+            color: var(--primary);
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        .buy-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            background: linear-gradient(135deg, #c9a15e, #8c1c13);
+            color: #fff;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .buy-btn:active { opacity:0.8; }
+        .member-header {
+            background: linear-gradient(135deg, #2d0a0a, #5a1a1a);
+            color: #fff;
+            padding: 30px 20px;
+            display: flex;
+            align-items: center;
+        }
+        .avatar {
+            width: 70px; height:70px;
+            border-radius:50%;
+            border: 2px solid var(--gold);
+            margin-right: 18px;
+        }
+        .asset-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
+        .asset-item {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+        .asset-label { font-size:13px; color:#888; margin-bottom:6px; }
+        .asset-value { font-size: 22px; font-weight:700; }
+        .action-row {
+            display: flex;
+            gap: 12px;
+            padding: 0 16px 16px;
+        }
+        .action-btn {
+            flex:1;
+            background: linear-gradient(135deg, #c9a15e, #8c1c13);
+            border: none;
+            border-radius: 14px;
+            color:#fff;
+            padding: 12px;
+            font-weight:500;
+        }
+        .order-tabs, .section-card {
+            background: var(--card-bg);
+            margin: 0 16px 16px;
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+        .order-tab-header {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 12px;
+        }
+        .order-tab-item {
+            flex:1;
+            text-align: center;
+            padding: 10px;
+            color: #999;
+            font-weight:500;
+            position:relative;
+        }
+        .order-tab-item.active {
+            color: var(--primary);
+        }
+        .order-tab-item.active::after {
+            content: '';
+            position:absolute;
+            bottom:0;
+            left:50%;
+            transform: translateX(-50%);
+            width:24px;
+            height:3px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        .order-empty { text-align:center; color:#ccc; padding:30px 0; }
+        .order-item { padding:12px 0; border-bottom:1px solid #f5f5f5; }
+        .footer {
+            position: fixed;
+            bottom:0;
+            left:0;
+            width:100%;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(20px);
+            display: flex;
+            border-top: 1px solid #eee;
+            padding: 6px 0;
+            z-index: 100;
+        }
+        .footer-item {
+            flex:1;
+            text-align: center;
+            color: #999;
+            padding: 6px 0;
+        }
+        .footer-item.active { color: var(--primary); }
+        .footer-item span { font-size: 12px; display:block; margin-top:2px; }
+        .pop {
+            position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+            background:#fff; border-radius:20px; padding:24px; width:85%; max-width:360px;
+            z-index:200; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display:none;
+        }
+        .pop.active { display:block; }
+        .mask {
+            position:fixed; top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,0.4); z-index:199; display:none;
+        }
+        .mask.active { display:block; }
+        .pop input {
+            width:100%; height:44px; background:#f5f5f5; border:none; border-radius:10px;
+            padding:0 14px; margin-bottom:12px;
+        }
+        .btn-group { display:flex; gap:10px; margin-top:10px; }
+        .btn-group button { flex:1; height:44px; border-radius:12px; border:none; font-weight:500; }
+        .btn-cancel { background:#eee; color:#333; }
+        .btn-submit { background:linear-gradient(135deg, #c9a15e, #8c1c13); color:#fff; }
+        .toast {
+            position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.8);
+            background:rgba(0,0,0,0.75); color:#fff; padding:14px 28px; border-radius:30px;
+            z-index:300; opacity:0; transition:0.3s; pointer-events:none;
+        }
         .toast.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
-        .mask { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998; display:none; }
-        .pop { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:85%; max-width:340px; background:#fff; border-radius:16px; padding:20px; z-index:9999; display:none; }
-        .pop h4 { text-align:center; margin-bottom:15px; color:#8c1c13; }
-        .pop input { width:100%; height:40px; padding:0 10px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px; }
-        .pop .btn-group { display:flex; gap:10px; } .pop button { flex:1; height:40px; border:none; border-radius:8px; }
-        .pop .cancel { background:#eee; color:#333; } .pop .submit { background:#8c1c13; color:#fff; }
     </style>
 </head>
 <body>
-    <header class="header"><input class="search-box" placeholder="搜索好酒、名茶、礼盒..."></header>
-
+    <div class="header">
+        <div class="logo">酒蕴茶乡</div>
+        <input class="search-box" placeholder="搜索好物...">
+    </div>
     <!-- 首页 -->
     <div class="page active" id="homePage">
-        <div class="banner">
-            <div class="banner-wrap"><div class="banner-list" id="bannerList">
-                <div class="banner-item"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
-                <div class="banner-item"><img src="https://picsum.photos/750/320?tea01" alt=""></div>
-                <div class="banner-item"><img src="https://picsum.photos/750/320?gift01" alt=""></div>
-            </div></div>
-        </div>
-        <div class="goods-head"><span class="goods-line"></span><span class="goods-title">甄选好物 · 人气推荐</span></div>
-        <div class="goods-container" id="goodsContainer"></div>
+        <div class="banner"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
+        <div class="section-title"><div class="line"></div><h3>甄选好物</h3></div>
+        <div class="goods-grid" id="goodsGrid"></div>
     </div>
-
     <!-- 购物车 -->
-    <div class="page" id="cartPage"><div class="cart-empty-wrap"><div class="cart-empty-icon">🛒</div><p>购物车暂时空空如也</p></div></div>
-
+    <div class="page" id="cartPage">
+        <div style="text-align:center; padding:80px 20px; color:#ccc;">🛒<br>购物车空空如也</div>
+    </div>
     <!-- 会员中心 -->
     <div class="page" id="memberPage">
-        <div class="member-banner"><div class="member-top">
-            <div class="avatar-box"><img src="https://picsum.photos/120/120?avatar" alt="头像"></div>
-            <div class="member-desc" id="memberInfo"><p>会员ID：--</p><p>专属邀请码：--</p></div>
-        </div></div>
-        <div class="asset-panel">
-            <div class="asset-row"><span>总算力</span><span id="powerVal">0</span></div>
-            <div class="asset-row"><span>数字资产</span><span id="assetVal">0.00</span></div>
-            <div class="asset-row"><span>酒豆</span><span id="beanVal">0</span></div>
-            <div class="asset-row"><span>酒令(支付)</span><span id="tokenVal">0</span></div>
-            <div class="btn-row">
-                <button class="exchange-btn" onclick="assetToBean()">资产转酒豆</button>
-                <button class="withdraw-btn" onclick="openWithdrawPop()">酒豆提现</button>
+        <div class="member-header">
+            <img class="avatar" src="https://picsum.photos/120/120?avatar">
+            <div>
+                <div style="font-size:18px; font-weight:600;" id="memberPhone">--</div>
+                <div style="opacity:0.7; font-size:13px; margin-top:4px;">邀请码：<span id="memberInvite">--</span></div>
             </div>
         </div>
-        <div class="order-module">
-            <div class="order-tab">
-                <div class="order-tab-item active" data-order="wait">待发货</div>
-                <div class="order-tab-item" data-order="send">已发货</div>
-                <div class="order-tab-item" data-order="done">已收货</div>
-                <div class="tab-line"></div>
+        <div class="asset-cards">
+            <div class="asset-item"><div class="asset-label">总算力</div><div class="asset-value" id="powerVal">0</div></div>
+            <div class="asset-item"><div class="asset-label">数字资产</div><div class="asset-value" id="assetVal">0.00</div></div>
+            <div class="asset-item"><div class="asset-label">酒豆</div><div class="asset-value" id="beanVal">0</div></div>
+            <div class="asset-item"><div class="asset-label">酒令</div><div class="asset-value" id="tokenVal">0</div></div>
+        </div>
+        <div class="action-row">
+            <button class="action-btn" onclick="assetToBean()">资产转酒豆</button>
+            <button class="action-btn" onclick="openWithdraw()">酒豆提现</button>
+        </div>
+        <div class="order-tabs">
+            <div class="order-tab-header">
+                <div class="order-tab-item active" data-status="wait">待发货</div>
+                <div class="order-tab-item" data-status="send">已发货</div>
+                <div class="order-tab-item" data-status="done">已收货</div>
             </div>
-            <div id="orderContent"><div class="order-empty">暂无相关订单</div></div>
+            <div id="orderList" class="order-empty">加载中...</div>
         </div>
-        <div class="withdraw-log-module">
-            <div style="font-weight:500; margin-bottom:12px;">我的提现申请</div>
-            <div id="withdrawLogContent"><div class="order-empty">暂无提现记录</div></div>
+        <div class="section-card">
+            <div style="font-weight:600; margin-bottom:12px;">提现记录</div>
+            <div id="withdrawList" class="order-empty">暂无记录</div>
         </div>
-        <button class="logout" style="background:#fff; color:#8c1c13; border:1px solid #8c1c13;" onclick="openPwdPop()">修改密码</button>
-        <button class="logout" onclick="logout()">退出登录</button>
+        <div style="padding:0 16px 16px; display:flex; gap:10px;">
+            <button style="flex:1; background:#f5f5f5; border:none; border-radius:14px; padding:12px;" onclick="openPwdPop()">修改密码</button>
+            <button style="flex:1; background:#f5f5f5; border:none; border-radius:14px; padding:12px;" onclick="logout()">退出登录</button>
+        </div>
     </div>
-
     <!-- 底部导航 -->
-    <div class="footer-tab">
-        <div class="footer-item active" data-page="home"><span class="footer-icon">🏠</span><span class="footer-text">首页</span></div>
-        <div class="footer-item" data-page="cart"><span class="footer-icon">🛒</span><span class="footer-text">购物车</span></div>
-        <div class="footer-item" data-page="member"><span class="footer-icon">👤</span><span class="footer-text">会员中心</span></div>
+    <div class="footer">
+        <div class="footer-item active" data-page="home"><div>🏠</div><span>首页</span></div>
+        <div class="footer-item" data-page="cart"><div>🛒</div><span>购物车</span></div>
+        <div class="footer-item" data-page="member"><div>👤</div><span>我的</span></div>
     </div>
-
-    <!-- 提现弹窗 -->
+    <!-- 弹窗：提现 -->
     <div class="mask" id="mask"></div>
     <div class="pop" id="withdrawPop">
-        <h4>酒豆提现申请</h4>
-        <input type="number" id="withdrawNum" placeholder="请输入提现酒豆数量" min="1">
-        <input type="text" id="withdrawAddr" placeholder="请输入提现地址">
+        <h4 style="text-align:center; margin-bottom:18px;">酒豆提现</h4>
+        <input type="number" id="withdrawNum" placeholder="提现数量">
+        <input type="text" id="withdrawAddr" placeholder="提现地址">
         <div class="btn-group">
-            <button class="cancel" onclick="closeWithdrawPop()">取消</button>
-            <button class="submit" onclick="submitWithdraw()">提交申请</button>
+            <button class="btn-cancel" onclick="closePop()">取消</button>
+            <button class="btn-submit" onclick="submitWithdraw()">提交</button>
         </div>
     </div>
-
-    <!-- 修改密码弹窗 -->
     <div class="pop" id="pwdPop">
-        <h4>修改密码</h4>
+        <h4 style="text-align:center; margin-bottom:18px;">修改密码</h4>
         <input type="password" id="oldPwd" placeholder="旧密码">
         <input type="password" id="newPwd" placeholder="新密码（至少6位）">
         <div class="btn-group">
-            <button class="cancel" onclick="closePwdPop()">取消</button>
-            <button class="submit" onclick="changePwd()">确认修改</button>
+            <button class="btn-cancel" onclick="closePop()">取消</button>
+            <button class="btn-submit" onclick="changePwd()">确认</button>
         </div>
     </div>
-
     <div class="toast" id="toast"></div>
-
     <script>
-        const API_BASE = "/api";
-        let currentOrderTab = 0;
-        let bannerIndex = 0;
-        const bannerList = document.getElementById('bannerList');
-        function autoBanner() { bannerIndex++; if(bannerIndex>=3) bannerIndex=0; bannerList.style.transform = `translateX(-${bannerIndex*100}%)`; }
-        setInterval(autoBanner, 3000);
-
-        function showToast(text) {
-            const toast = document.getElementById('toast');
-            toast.innerText = text; toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2200);
-        }
-
-        // 刷新本地用户信息
-        async function refreshLocalUser() {
-            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
-            if (!user.phone) return;
-            const res = await fetch(`${API_BASE}/user?phone=${user.phone}`);
-            const data = await res.json();
-            if (data.code === 0) localStorage.setItem("loginUser", JSON.stringify(data.user));
-        }
-
-        // 触发每日释放（备用，主要靠cron）
-        async function triggerRelease() { try { await fetch(`${API_BASE}/release`); } catch(e) {} }
-
-        // 动态加载商品
-        async function loadGoods() {
-            const res = await fetch(`${API_BASE}/goods-list`);
+        const API = '/api';
+        let curOrderStatus = 'wait';
+        // 工具
+        function showToast(msg){const t=document.getElementById('toast');t.innerText=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+        function closePop(){document.getElementById('mask').classList.remove('active');document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active'));}
+        // 导航
+        document.querySelectorAll('.footer-item').forEach(item=>{
+            item.addEventListener('click', function(){
+                document.querySelectorAll('.footer-item').forEach(i=>i.classList.remove('active'));
+                this.classList.add('active');
+                const page = this.dataset.page;
+                document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+                if(page==='home') document.getElementById('homePage').classList.add('active');
+                else if(page==='cart') document.getElementById('cartPage').classList.add('active');
+                else if(page==='member') { document.getElementById('memberPage').classList.add('active'); loadMemberData(); loadOrders('wait'); }
+            })
+        });
+        // 商品加载
+        async function loadGoods(){
+            const res = await fetch(`${API}/goods-list`);
             const data = await res.json();
             const list = data.list || [];
-            let html = '';
-            list.forEach(g => {
-                html += `<div class="goods-card">
-                    <img class="goods-img" src="${g.image_url}" alt="${g.name}">
+            let html='';
+            list.forEach(g=>{
+                html+=`<div class="goods-card">
+                    <img src="${g.image_url}">
                     <div class="goods-info">
                         <div class="goods-name">${g.name}</div>
                         <div class="goods-price">¥ ${g.price}</div>
-                        <a href="javascript:goPay(${g.id},${g.price})" class="buy-btn">立即购买</a>
+                        <a href="pay.html?gid=${g.id}&price=${g.price}" class="buy-btn">立即购买</a>
                     </div></div>`;
             });
-            document.getElementById('goodsContainer').innerHTML = html || '<p style="text-align:center;padding:30px;">暂无商品</p>';
+            document.getElementById('goodsGrid').innerHTML=html||'<p style="text-align:center;padding:30px;">暂无商品</p>';
         }
-
-        // 资产转酒豆
-        async function assetToBean() {
-            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
-            if (!user.phone) return showToast("请先登录");
-            const res = await fetch(`${API_BASE}/asset-to-bean`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone:user.phone})
-            });
-            const data = await res.json();
-            showToast(data.msg || "操作完成");
-            if (data.code === 0) { await refreshLocalUser(); loadMemberData(); }
-        }
-
-        // 提现弹窗
-        function openWithdrawPop() {
-            document.getElementById('mask').style.display='block';
-            document.getElementById('withdrawPop').style.display='block';
-            document.getElementById('withdrawNum').value='';
-            document.getElementById('withdrawAddr').value='';
-        }
-        function closeWithdrawPop() {
-            document.getElementById('mask').style.display='none';
-            document.getElementById('withdrawPop').style.display='none';
-        }
-        async function submitWithdraw() {
-            const num = parseInt(document.getElementById('withdrawNum').value);
-            const addr = document.getElementById('withdrawAddr').value.trim();
-            if (!num || num<=0) return showToast("请输入合法数量");
-            if (!addr) return showToast("请输入提现地址");
-            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
-            const res = await fetch(`${API_BASE}/withdraw`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({phone:user.phone, beanNum:num, address:addr})
-            });
-            const data = await res.json();
-            showToast(data.msg || "提交失败");
-            closeWithdrawPop();
+        // 会员
+        async function loadMemberData(){
+            const user = JSON.parse(localStorage.getItem('loginUser')||'{}');
+            if(!user.phone) return;
+            document.getElementById('memberPhone').innerText=user.phone;
+            document.getElementById('memberInvite').innerText=user.invite_code||user.phone;
+            document.getElementById('powerVal').innerText=user.power||0;
+            document.getElementById('assetVal').innerText=user.asset||'0.00';
+            document.getElementById('beanVal').innerText=user.bean||0;
+            document.getElementById('tokenVal').innerText=user.token||0;
             loadWithdrawLog();
         }
-
-        // 修改密码
-        function openPwdPop() {
-            document.getElementById('mask').style.display='block';
-            document.getElementById('pwdPop').style.display='block';
-            document.getElementById('oldPwd').value='';
-            document.getElementById('newPwd').value='';
-        }
-        function closePwdPop() {
-            document.getElementById('mask').style.display='none';
-            document.getElementById('pwdPop').style.display='none';
-        }
-        async function changePwd() {
-            const user = JSON.parse(localStorage.getItem("loginUser") || "{}");
-            const oldPwd = document.getElementById('oldPwd').value;
-            const newPwd = document.getElementById('newPwd').value;
-            if (!oldPwd || !newPwd || newPwd.length<6) return showToast('密码至少6位');
-            const res = await fetch(`${API_BASE}/change-pwd`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({phone:user.phone, oldPwd, newPwd})
-            });
+        async function loadOrders(status){
+            curOrderStatus = status;
+            document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
+            document.querySelector(`.order-tab-item[data-status="${status}"]`).classList.add('active');
+            const user = JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res = await fetch(`${API}/user-orders?phone=${user.phone}`);
             const data = await res.json();
-            showToast(data.msg || '修改失败');
-            if (data.code === 0) closePwdPop();
+            const orders = (data.orders||[]).filter(o=>o.status===status);
+            let html='';
+            if(orders.length===0) html='<div class="order-empty">暂无订单</div>';
+            else orders.forEach(o=>{
+                html+=`<div class="order-item">
+                    <div>商品：${o.goods_id}  ｜ ¥${o.price}</div>
+                    <div style="font-size:12px; color:#999;">${o.create_time}</div>
+                    ${o.status==='send'?`<button style="margin-top:6px; background:var(--primary); color:#fff; border:none; border-radius:8px; padding:4px 12px;" onclick="confirmOrder(${o.id})">确认收货</button>`:''}
+                </div>`;
+            });
+            document.getElementById('orderList').innerHTML=html;
         }
-
-        // 底部导航
-        document.querySelectorAll('.footer-item').forEach(item => {
-            item.addEventListener('click', function() {
-                let pageType = this.dataset.page;
-                document.querySelectorAll('.footer-item').forEach(n=>n.classList.remove('active'));
-                this.classList.add('active');
-                document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-                if (pageType === 'home') document.getElementById('homePage').classList.add('active');
-                else if (pageType === 'cart') document.getElementById('cartPage').classList.add('active');
-                else if (pageType === 'member') { document.getElementById('memberPage').classList.add('active'); loadMemberData(); switchOrderTab(0); }
-            })
+        document.querySelectorAll('.order-tab-item').forEach(item=>{
+            item.addEventListener('click', ()=> loadOrders(item.dataset.status))
         });
-
-        // 订单Tab
-        const orderTabs = document.querySelectorAll('.order-tab-item');
-        const tabLine = document.querySelector('.tab-line');
-        function switchOrderTab(idx) {
-            currentOrderTab = idx;
-            orderTabs.forEach(t=>t.classList.remove('active'));
-            orderTabs[idx].classList.add('active');
-            tabLine.style.transform = `translateX(${idx*100}%)`;
-            renderOrder(idx);
-        }
-        orderTabs.forEach((tab, idx) => tab.addEventListener('click', () => switchOrderTab(idx)));
-
-        function goPay(goodsId, price) { location.href = `pay.html?gid=${goodsId}&price=${price}`; }
-
-        function loadMemberData() {
-            let user = JSON.parse(localStorage.getItem("loginUser")||"{}");
-            if (!user.phone) return;
-            document.getElementById('memberInfo').innerHTML = `<p>会员ID：${user.phone}</p><p>专属邀请码：${user.invite_code || user.phone}</p>`;
-            document.getElementById('powerVal').innerText = user.power || "0";
-            document.getElementById('assetVal').innerText = user.asset || "0.00";
-            document.getElementById('beanVal').innerText = user.bean || "0";
-            document.getElementById('tokenVal').innerText = user.token || "0";
-            switchOrderTab(0);
-            loadWithdrawLog();
-        }
-
-        async function renderOrder(tabIndex) {
-            const user = JSON.parse(localStorage.getItem("loginUser")||"{}");
-            const res = await fetch(`${API_BASE}/user-orders?phone=${user.phone}`);
+        async function confirmOrder(id){
+            const user = JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res = await fetch(`${API}/confirm-order`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone, orderId:id})});
             const data = await res.json();
-            const orders = data.orders || [];
-            const type = ['wait','send','done'][tabIndex];
-            const filterList = orders.filter(o => o.status === type);
-            const content = document.getElementById('orderContent');
-            if (filterList.length === 0) { content.innerHTML = '<div class="order-empty">暂无相关订单</div>'; return; }
-            let html = '';
-            filterList.forEach(item => {
-                const statusText = item.status==='wait'?'待发货':(item.status==='send'?'已发货':'已收货');
-                html += `<div class="order-item">
-                    <div>商品编号：${item.goods_id}</div><div>支付金额：¥${item.price}</div><div>下单时间：${item.create_time}</div><div>状态：${statusText}</div>
-                    ${item.status==='send' ? `<button onclick="confirmOrder(${item.id})" style="margin-top:5px; background:#8c1c13; color:#fff; border:none; padding:6px 12px; border-radius:6px;">确认收货</button>` : ''}
-                </div>`;
-            });
-            content.innerHTML = html;
+            showToast(data.msg||'操作成功');
+            loadOrders(curOrderStatus);
         }
-
-        async function confirmOrder(orderId) {
-            const user = JSON.parse(localStorage.getItem("loginUser")||"{}");
-            const res = await fetch(`${API_BASE}/confirm-order`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({phone:user.phone, orderId})
-            });
-            const data = await res.json();
-            showToast(data.msg || '操作失败');
-            if (data.code === 0) { switchOrderTab(currentOrderTab); }
+        function openWithdraw(){
+            document.getElementById('mask').classList.add('active');
+            document.getElementById('withdrawPop').classList.add('active');
         }
-
-        async function loadWithdrawLog() {
-            const user = JSON.parse(localStorage.getItem("loginUser")||"{}");
-            if (!user.phone) return;
-            const res = await fetch(`${API_BASE}/user-withdraws?phone=${user.phone}`);
-            const data = await res.json();
-            const list = data.list || [];
-            const content = document.getElementById('withdrawLogContent');
-            if (list.length === 0) { content.innerHTML = '<div class="order-empty">暂无提现记录</div>'; return; }
-            let html = '';
-            list.forEach(item => {
-                const statusText = item.status==='wait'?'待审核':(item.status==='pass'?'已通过':'已拒绝');
-                const statusColor = item.status==='pass'?'green':(item.status==='refuse'?'red':'#f0a020');
-                html += `<div class="order-item">
-                    <div>提现数量：${item.bean_num} 酒豆</div><div>提现地址：${item.address || '未填写'}</div>
-                    <div>申请时间：${item.apply_time}</div><div>状态：<span style="color:${statusColor}">${statusText}</span></div>
-                </div>`;
-            });
-            content.innerHTML = html;
-        }
-
-        function logout() {
-            localStorage.removeItem("loginUser");
-            showToast('已退出登录');
-            setTimeout(() => location.href = "index.html", 1200);
-        }
-
-        window.onload = async function() {
-            let user = localStorage.getItem("loginUser");
-            if (!user) { location.href = "index.html"; return; }
-            await triggerRelease();
-            await refreshLocalUser();
-            loadGoods();
+        async function submitWithdraw(){
+            const num=parseInt(document.getElementById('withdrawNum').value);
+            const addr=document.getElementById('withdrawAddr').value.trim();
+            if(!num||num<=0) return showToast('请输入数量');
+            if(!addr) return showToast('请输入地址');
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res=await fetch(`${API}/withdraw`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone, beanNum:num, address:addr})});
+            const data=await res.json();
+            showToast(data.msg||'提交失败');
+            closePop();
             loadMemberData();
+        }
+        async function loadWithdrawLog(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res=await fetch(`${API}/user-withdraws?phone=${user.phone}`);
+            const data=await res.json();
+            const list=data.list||[];
+            let html='';
+            if(list.length===0) html='<div class="order-empty">暂无记录</div>';
+            else list.forEach(item=>{
+                const statusMap={wait:'待审核',pass:'已通过',refuse:'已拒绝'};
+                const colorMap={pass:'green',refuse:'red',wait:'#f0a020'};
+                html+=`<div class="order-item">
+                    <div>提现 ${item.bean_num} 酒豆</div>
+                    <div style="font-size:12px;">地址：${item.address||'无'}</div>
+                    <div style="font-size:12px; color:#999;">${item.apply_time}</div>
+                    <span style="color:${colorMap[item.status]}">${statusMap[item.status]}</span>
+                </div>`;
+            });
+            document.getElementById('withdrawList').innerHTML=html;
+        }
+        function openPwdPop(){
+            document.getElementById('mask').classList.add('active');
+            document.getElementById('pwdPop').classList.add('active');
+        }
+        async function changePwd(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const oldPwd=document.getElementById('oldPwd').value;
+            const newPwd=document.getElementById('newPwd').value;
+            if(!oldPwd||!newPwd||newPwd.length<6) return showToast('密码至少6位');
+            const res=await fetch(`${API}/change-pwd`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone, oldPwd, newPwd})});
+            const data=await res.json();
+            showToast(data.msg||'修改失败');
+            closePop();
+        }
+        async function assetToBean(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res=await fetch(`${API}/asset-to-bean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone})});
+            const data=await res.json();
+            showToast(data.msg||'兑换完成');
+            if(data.code===0) { await refreshLocalUser(); loadMemberData(); }
+        }
+        async function refreshLocalUser(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res=await fetch(`${API}/user?phone=${user.phone}`);
+            const data=await res.json();
+            if(data.code===0) localStorage.setItem('loginUser',JSON.stringify(data.user));
+        }
+        function logout(){ localStorage.removeItem('loginUser'); location.href='index.html'; }
+        window.onload=async function(){
+            if(!localStorage.getItem('loginUser')) return location.href='index.html';
+            loadGoods();
+            try { await fetch(`${API}/release`); } catch(e){}
         }
     </script>
 </body>
