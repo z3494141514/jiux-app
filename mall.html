@@ -77,7 +77,7 @@
             box-shadow: 0 4px 10px rgba(140,28,19,0.2);
         }
 
-        /* ===== 行情页高端UI ===== */
+        /* 行情页高端UI */
         .market-bg {
             background: linear-gradient(160deg, #0b0b1a 0%, #1a1a2e 100%);
             min-height: calc(100vh - 52px);
@@ -137,6 +137,12 @@
             margin-top: 20px;
             font-size: 13px;
             color: #aab;
+            flex-wrap: wrap;
+        }
+        .extra-info div {
+            background: rgba(255,255,255,0.04);
+            padding: 6px 14px;
+            border-radius: 8px;
         }
         .chart-card {
             background: rgba(255,255,255,0.03);
@@ -153,10 +159,11 @@
             margin-bottom: 16px;
             color: #ccc;
         }
-        canvas {
+        canvas#priceChart {
             width: 100% !important;
             height: auto !important;
             border-radius: 8px;
+            background: rgba(0,0,0,0.2);
         }
         .footer-market {
             font-size: 12px;
@@ -246,9 +253,9 @@
                     <span style="color:#888;">24h 涨跌</span>
                 </div>
                 <div class="extra-info">
-                    <div>买一 <span id="bidPrice">--</span></div>
-                    <div>卖一 <span id="askPrice">--</span></div>
                     <div>成交量 <span id="volume">--</span></div>
+                    <div>流动性 <span id="liquidity">--</span></div>
+                    <div>FDV <span id="fdv">--</span></div>
                 </div>
             </div>
             <div class="chart-card">
@@ -258,7 +265,7 @@
                 </div>
                 <canvas id="priceChart" height="220"></canvas>
             </div>
-            <div class="footer-market">数据来源 DexScreener · 自动刷新</div>
+            <div class="footer-market">数据来源 DexScreener · 每30秒更新</div>
         </div>
     </div>
 
@@ -340,12 +347,12 @@
         let priceHistory = [];
         const MAX_HISTORY = 30;
         const ART_ADDRESS = '0x7ff6eeb4020dad718a791cf5f6c3e72027666666';
-        let chartReady = false;
         let artInterval = null;
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
 
+        // 导航切换
         document.querySelectorAll('.footer-item').forEach(item => {
             item.addEventListener('click', function () {
                 document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
@@ -354,18 +361,18 @@
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 if (page === 'home') {
                     document.getElementById('homePage').classList.add('active');
-                    if (artInterval) clearInterval(artInterval);
+                    if (artInterval) { clearInterval(artInterval); artInterval = null; }
                 } else if (page === 'cart') {
                     document.getElementById('cartPage').classList.add('active');
-                    initChart();
-                    fetchArtPrice();
+                    // 重新校准 canvas 尺寸并获取数据
+                    setTimeout(() => { initChart(); fetchArtPrice(); }, 50);
                     if (artInterval) clearInterval(artInterval);
                     artInterval = setInterval(fetchArtPrice, 30000);
                 } else if (page === 'member') {
                     document.getElementById('memberPage').classList.add('active');
                     loadMemberData();
                     loadOrders('wait');
-                    if (artInterval) clearInterval(artInterval);
+                    if (artInterval) { clearInterval(artInterval); artInterval = null; }
                 }
                 window.scrollTo(0, 0);
             })
@@ -374,11 +381,9 @@
         function initChart() {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            // 设置画布尺寸
-            canvas.width = canvas.clientWidth;
+            // 关键：以实际可见宽度设置 canvas 像素宽度，避免拉伸
+            canvas.width = canvas.clientWidth || 300;
             canvas.height = 220;
-            chartReady = true;
             drawChart();
         }
 
@@ -398,14 +403,19 @@
                     const change = parseFloat(pair.priceChange.h24);
                     document.getElementById('artPrice').innerText = '$' + price.toFixed(6);
                     const changeEl = document.getElementById('artChangeLabel');
-                    changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                    const changeVal = change.toFixed(2);
+                    changeEl.innerText = (change >= 0 ? '+' : '') + changeVal + '%';
                     changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
-                    document.getElementById('bidPrice').innerText = parseFloat(pair.bid) ? '$' + parseFloat(pair.bid).toFixed(6) : '--';
-                    document.getElementById('askPrice').innerText = parseFloat(pair.ask) ? '$' + parseFloat(pair.ask).toFixed(6) : '--';
+
+                    // 成交量、流动性、FDV 替换原来的买一卖一
                     document.getElementById('volume').innerText = pair.volume?.h24 ? formatVolume(pair.volume.h24) : '--';
+                    document.getElementById('liquidity').innerText = pair.liquidity?.usd ? '$' + formatVolume(pair.liquidity.usd) : '--';
+                    document.getElementById('fdv').innerText = pair.fdv ? '$' + formatVolume(pair.fdv) : '--';
+
+                    // 添加价格到历史
                     priceHistory.push(price);
                     if (priceHistory.length > MAX_HISTORY) priceHistory.shift();
-                    if (chartReady) drawChart();
+                    drawChart();
                 }
             } catch (err) {
                 console.error('ART数据获取失败', err);
@@ -415,12 +425,12 @@
         function formatVolume(vol) {
             if (vol >= 1000000) return (vol / 1000000).toFixed(2) + 'M';
             if (vol >= 1000) return (vol / 1000).toFixed(2) + 'K';
-            return vol.toFixed(2);
+            return parseFloat(vol).toFixed(2);
         }
 
         function drawChart() {
             const canvas = document.getElementById('priceChart');
-            if (!canvas || !chartReady || priceHistory.length < 2) return;
+            if (!canvas || priceHistory.length < 2) return;
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
             const h = canvas.height;
@@ -428,37 +438,49 @@
 
             const min = Math.min(...priceHistory);
             const max = Math.max(...priceHistory);
-            const range = max - min || 1;
+            const range = max - min;
+
+            // 如果价格完全相同，让线条显示在中间
+            const effectiveRange = range === 0 ? 1 : range;
+            const padding = 10;
+
+            const getY = (price) => {
+                return h - ((price - min) / effectiveRange) * (h - padding * 2) - padding;
+            };
 
             // 渐变填充
             const gradient = ctx.createLinearGradient(0, 0, 0, h);
-            gradient.addColorStop(0, 'rgba(201,161,94,0.3)');
+            gradient.addColorStop(0, 'rgba(201,161,94,0.35)');
             gradient.addColorStop(1, 'rgba(201,161,94,0)');
 
             ctx.beginPath();
             const firstX = 0;
-            const firstY = h - ((priceHistory[0] - min) / range) * (h - 20) - 10;
+            const firstY = getY(priceHistory[0]);
             ctx.moveTo(firstX, firstY);
+
             for (let i = 1; i < priceHistory.length; i++) {
                 const x = (i / (priceHistory.length - 1)) * w;
-                const y = h - ((priceHistory[i] - min) / range) * (h - 20) - 10;
+                const y = getY(priceHistory[i]);
                 ctx.lineTo(x, y);
             }
-            // 绘制下方填充
+            // 绘制折线
             ctx.strokeStyle = '#c9a15e';
             ctx.lineWidth = 2;
             ctx.stroke();
+
+            // 绘制下方填充
             ctx.lineTo(w, h);
             ctx.lineTo(0, h);
             ctx.closePath();
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            // 最后价格点
+            // 最新价格点高亮
+            const lastIdx = priceHistory.length - 1;
             const lastX = w;
-            const lastY = h - ((priceHistory[priceHistory.length-1] - min) / range) * (h - 20) - 10;
+            const lastY = getY(priceHistory[lastIdx]);
             ctx.beginPath();
-            ctx.arc(lastX, lastY, 4, 0, Math.PI*2);
+            ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.fill();
             ctx.strokeStyle = '#c9a15e';
@@ -637,7 +659,7 @@
             if(!localStorage.getItem('loginUser')) return location.href='index.html';
             loadGoods();
             try{ await fetch(`${API}/release`); }catch(e){}
-            // 预初始化图表
+            // 预初始化图表但不绘制，等待数据
             initChart();
         }
     </script>
