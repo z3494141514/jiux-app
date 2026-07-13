@@ -9,7 +9,6 @@
         body{background:#f5f7fa;padding:20px;}
         .container{max-width:1200px;margin:0 auto;}
         .header{background:#8c1c13;color:#fff;padding:16px 20px;border-radius:8px;margin-bottom:20px;}
-        /* 修复导航：默认黑字，选中红底白字 */
         .tab-box{display:flex;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:20px;flex-wrap:wrap;}
         .tab-item{padding:14px 20px;cursor:pointer;border:none;background:transparent;font-size:14px;color:#333;}
         .tab-item.active{background:#8c1c13;color:#fff;}
@@ -41,7 +40,6 @@
             <button class="tab-item" data-tab="releaseLog">算力释放日志</button>
         </div>
 
-        <!-- 1. 全局参数配置 -->
         <div class="panel active" id="panel-config">
             <h3>业务参数设置</h3>
             <p class="tip">修改后保存立即生效，影响全平台规则</p>
@@ -64,7 +62,6 @@
             <button onclick="saveConfig()">保存配置</button>
         </div>
 
-        <!-- 2. 会员管理 + 酒令充值 -->
         <div class="panel" id="panel-user">
             <h3>会员列表 & 酒令充值</h3>
             <p class="tip">选中会员，填写充值数量，点击充值即可增加用户酒令</p>
@@ -93,7 +90,6 @@
             </table>
         </div>
 
-        <!-- 3. 订单管理（修改订单状态） -->
         <div class="panel" id="panel-order">
             <h3>全部订单 & 状态修改</h3>
             <table>
@@ -111,7 +107,6 @@
             </table>
         </div>
 
-        <!-- 4. 提现审核（酒豆提现） -->
         <div class="panel" id="panel-withdraw">
             <h3>用户酒豆提现审核</h3>
             <table>
@@ -128,7 +123,6 @@
             </table>
         </div>
 
-        <!-- 5. 充值记录 -->
         <div class="panel" id="panel-rechargeLog">
             <h3>后台酒令充值记录</h3>
             <table>
@@ -143,7 +137,6 @@
             </table>
         </div>
 
-        <!-- 6. 算力释放日志 -->
         <div class="panel" id="panel-releaseLog">
             <h3>每日算力释放执行记录</h3>
             <table>
@@ -163,7 +156,6 @@
         const API = "/api/data";
         let allData = {};
 
-        // Tab切换
         document.querySelectorAll('.tab-item').forEach(tab=>{
             tab.addEventListener('click',function(){
                 document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
@@ -179,7 +171,6 @@
             })
         })
 
-        // ========== 还原为你之前正常可用的 JS 逻辑 ==========
         async function loadData(){
             let res = await fetch(API);
             let json = await res.json();
@@ -213,6 +204,8 @@
         function loadUserSelect(){
             let sel = document.getElementById('userSelect');
             sel.innerHTML = "";
+            // 新增空判断，无数据不报错
+            if(!allData.users || allData.users.length === 0) return;
             allData.users.forEach(u=>{
                 let opt = document.createElement('option');
                 opt.value = u.phone;
@@ -244,6 +237,11 @@
 
         function renderUser(){
             let html = "";
+            // 新增空判断
+            if(!allData.users || allData.users.length === 0){
+                document.getElementById('userTable').innerHTML = "<tr><td colspan='6'>暂无会员数据</td></tr>";
+                return;
+            }
             allData.users.forEach(u=>{
                 html += `<tr>
                     <td>${u.phone}</td>
@@ -259,6 +257,10 @@
 
         function renderOrder(){
             let html = "";
+            if(!allData.users || allData.users.length === 0){
+                document.getElementById('orderTable').innerHTML = "<tr><td colspan='6'>暂无订单数据</td></tr>";
+                return;
+            }
             allData.users.forEach(u=>{
                 if(!u.orderList) return;
                 u.orderList.forEach((o,idx)=>{
@@ -280,6 +282,7 @@
                     </tr>`;
                 })
             })
+            if(html === "") html = "<tr><td colspan='6'>暂无订单数据</td></tr>";
             document.getElementById('orderTable').innerHTML = html;
         }
 
@@ -297,8 +300,12 @@
 
         function renderWithdraw(){
             let html = "";
+            if(!allData.withdrawLog || allData.withdrawLog.length === 0){
+                document.getElementById('withdrawTable').innerHTML = "<tr><td colspan='5'>暂无提现申请</td></tr>";
+                return;
+            }
             allData.withdrawLog.forEach((item,idx)=>{
-                let statusText = item.status==='wait'?'待审核':item.status==='pass'?'已通过':item.status==='refuse'?'已拒绝':'';
+                let statusText = item.status==='wait'?'待审核':item.status==='pass'?'已通过':'已拒绝';
                 html += `<tr>
                     <td>${item.phone}</td>
                     <td>${item.beanNum}</td>
@@ -341,6 +348,10 @@
 
         function renderRechargeLog(){
             let html = "";
+            if(!allData.rechargeLog || allData.rechargeLog.length === 0){
+                document.getElementById('rechargeLogTable').innerHTML = "<tr><td colspan='3'>暂无充值记录</td></tr>";
+                return;
+            }
             allData.rechargeLog.forEach(l=>{
                 html += `<tr>
                     <td>${l.phone}</td>
@@ -353,6 +364,10 @@
 
         function renderReleaseLog(){
             let html = "";
+            if(!allData.releaseLog || allData.releaseLog.length === 0){
+                document.getElementById('releaseLogTable').innerHTML = "<tr><td colspan='3'>暂无释放记录</td></tr>";
+                return;
+            }
             allData.releaseLog.forEach(l=>{
                 html += `<tr>
                     <td>${l.date}</td>
