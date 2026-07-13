@@ -172,6 +172,14 @@
             height: 100% !important;
             display: block;
         }
+        .chart-nodata {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #888;
+            font-size: 14px;
+        }
         .footer-market {
             font-size: 12px;
             color: #555;
@@ -272,6 +280,7 @@
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="priceChart"></canvas>
+                    <div class="chart-nodata" id="chartNoData" style="display:none;">数据加载中...</div>
                 </div>
             </div>
             <div class="footer-market">数据来源 DexScreener（服务端代理）</div>
@@ -385,27 +394,28 @@
         }
 
         function startMarketPage() {
-            // 先请求数据，数据到了再初始化画布
-            fetchArtPrice();
-            if (artInterval) clearInterval(artInterval);
-            artInterval = setInterval(fetchArtPrice, 30000);
+            // 延迟一段时间，等待 DOM 完全渲染
+            setTimeout(() => {
+                initChart();
+                fetchArtPrice();
+                if (artInterval) clearInterval(artInterval);
+                artInterval = setInterval(fetchArtPrice, 30000);
+            }, 300);
         }
 
         function initChart() {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             const wrapper = canvas.parentNode;
-            const w = wrapper.clientWidth;
-            if (w === 0) {
-                // 容器尚未就绪，延迟重试
-                setTimeout(initChart, 100);
-                return;
-            }
+            // 获取容器宽度，如果为 0 则使用默认值 300
+            const w = wrapper.clientWidth > 0 ? wrapper.clientWidth : 300;
             canvas.width = w;
             canvas.height = 220;
-            // 如果有数据，立即绘制
             if (priceHistory.length >= 2) {
+                document.getElementById('chartNoData').style.display = 'none';
                 drawChart();
+            } else {
+                document.getElementById('chartNoData').style.display = 'block';
             }
         }
 
@@ -437,7 +447,7 @@
                     priceHistory.push(price);
                     if (priceHistory.length > 30) priceHistory.shift();
 
-                    // 确保画布初始化后再绘制
+                    // 重新初始化画布并绘图
                     initChart();
                 }
             } catch (err) {
@@ -454,7 +464,6 @@
 
         function drawChart() {
             const canvas = document.getElementById('priceChart');
-            // 严格守卫：无数据或数据不足时不绘制
             if (!canvas || priceHistory.length < 2) return;
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
@@ -480,12 +489,11 @@
             for (let i = 1; i < priceHistory.length; i++) {
                 ctx.lineTo(getX(i), getY(priceHistory[i]));
             }
-            // 先保存折线路径
             ctx.strokeStyle = '#c9a15e';
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // 填充区域：从最后一个点向下延伸到 x 轴，再回到第一个点下方
+            // 填充区域
             ctx.lineTo(getX(priceHistory.length - 1), h);
             ctx.lineTo(getX(0), h);
             ctx.closePath();
@@ -502,6 +510,8 @@
             ctx.strokeStyle = '#c9a15e';
             ctx.lineWidth = 2;
             ctx.stroke();
+
+            document.getElementById('chartNoData').style.display = 'none';
         }
 
         // ====== 商品 ======
