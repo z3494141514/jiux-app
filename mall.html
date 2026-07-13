@@ -390,21 +390,26 @@
                 fetchArtPrice();
                 if (artInterval) clearInterval(artInterval);
                 artInterval = setInterval(fetchArtPrice, 30000);
-            }, 100);
+            }, 200);
         }
 
         function initChart() {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             const wrapper = canvas.parentNode;
-            canvas.width = wrapper.clientWidth || 300;
+            const w = wrapper.clientWidth;
+            if (w === 0) {
+                setTimeout(initChart, 100);
+                return;
+            }
+            canvas.width = w;
             canvas.height = 220;
+            if (priceHistory.length > 0) drawChart();
         }
 
         window.addEventListener('resize', () => {
             if (document.getElementById('cartPage').classList.contains('active')) {
                 initChart();
-                drawChart();
             }
         });
 
@@ -429,7 +434,8 @@
                     
                     priceHistory.push(price);
                     if (priceHistory.length > 30) priceHistory.shift();
-                    drawChart();
+
+                    initChart(); // 重设画布并绘制
                 }
             } catch (err) {
                 console.error('行情获取失败', err);
@@ -449,6 +455,7 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
             const h = canvas.height;
+            if (w === 0 || h === 0) return;
             ctx.clearRect(0, 0, w, h);
 
             const min = Math.min(...priceHistory);
