@@ -199,6 +199,8 @@
                     <div class="form-item"><label>每日释放小时(0-23)</label><input type="number" id="releaseHour" min="0" max="23"></div>
                     <div class="form-item"><label>每日释放比例</label><input type="number" id="releaseRate" step="0.01"></div>
                     <div class="form-item"><label>资产兑换酒豆比例</label><input type="number" id="assetToBeanRate"></div>
+                    <div class="form-item"><label>每日提现次数上限</label><input type="number" id="withdrawLimitPerDay" min="1"></div>
+                    <div class="form-item"><label>最低提现金额(酒豆)</label><input type="number" id="minWithdrawBean" min="1"></div>
                 </div>
                 <button class="btn-primary" onclick="saveConfig()">保存配置</button>
             </div>
@@ -243,7 +245,6 @@
                     <div class="form-item"><label>描述</label><input type="text" id="goodsDesc" placeholder="简短描述"></div>
                     <div class="form-item"><label>所需最低等级</label><input type="number" id="goodsRequiredLevel" value="0" min="0"></div>
                     <div class="form-item"><label>购买后升级至等级</label><input type="number" id="goodsUpgradeLevel" value="0" min="0"></div>
-                    <!-- 新增库存字段 -->
                     <div class="form-item"><label>库存</label><input type="number" id="goodsStock" value="0" min="0"></div>
                 </div>
                 <div class="flex-row">
@@ -389,6 +390,8 @@
                     document.getElementById('releaseHour').value = data.config.releaseHour || 8;
                     document.getElementById('releaseRate').value = data.config.releaseRate || 0.05;
                     document.getElementById('assetToBeanRate').value = data.config.assetToBeanRate || 5;
+                    document.getElementById('withdrawLimitPerDay').value = data.config.withdrawLimitPerDay || 3;
+                    document.getElementById('minWithdrawBean').value = data.config.minWithdrawBean || 10;
                 }
             } catch (e) {}
         }
@@ -398,7 +401,9 @@
                 powerRatio: document.getElementById('powerRatio').value,
                 releaseHour: document.getElementById('releaseHour').value,
                 releaseRate: document.getElementById('releaseRate').value,
-                assetToBeanRate: document.getElementById('assetToBeanRate').value
+                assetToBeanRate: document.getElementById('assetToBeanRate').value,
+                withdrawLimitPerDay: document.getElementById('withdrawLimitPerDay').value,
+                minWithdrawBean: document.getElementById('minWithdrawBean').value
             };
             await fetch(`${API}/config`, {
                 method: 'POST',
@@ -695,7 +700,6 @@
             document.getElementById('releaseLogTable').innerHTML = html;
         }
 
-        // 初始化
         window.onload = loadAllData;
     </script>
 </body>
