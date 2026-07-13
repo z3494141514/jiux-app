@@ -385,29 +385,26 @@
         }
 
         function startMarketPage() {
-            setTimeout(() => {
-                initChart();
-                fetchArtPrice();
-                if (artInterval) clearInterval(artInterval);
-                artInterval = setInterval(fetchArtPrice, 30000);
-            }, 500); // 增加延迟
+            // 先请求数据，数据到了再初始化画布
+            fetchArtPrice();
+            if (artInterval) clearInterval(artInterval);
+            artInterval = setInterval(fetchArtPrice, 30000);
         }
 
-        function initChart(retryCount = 0) {
+        function initChart() {
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             const wrapper = canvas.parentNode;
             const w = wrapper.clientWidth;
             if (w === 0) {
-                if (retryCount < 10) {
-                    setTimeout(() => initChart(retryCount + 1), 200);
-                }
+                // 容器尚未就绪，延迟重试
+                setTimeout(initChart, 100);
                 return;
             }
             canvas.width = w;
             canvas.height = 220;
-            console.log('Canvas 尺寸已设置:', w, 220);
-            if (priceHistory.length > 1) {
+            // 如果有数据，立即绘制
+            if (priceHistory.length >= 2) {
                 drawChart();
             }
         }
@@ -440,8 +437,7 @@
                     priceHistory.push(price);
                     if (priceHistory.length > 30) priceHistory.shift();
 
-                    console.log('价格历史长度:', priceHistory.length, '最新价格:', price);
-                    // 强制重新校准尺寸并绘制
+                    // 确保画布初始化后再绘制
                     initChart();
                 }
             } catch (err) {
@@ -458,6 +454,7 @@
 
         function drawChart() {
             const canvas = document.getElementById('priceChart');
+            // 严格守卫：无数据或数据不足时不绘制
             if (!canvas || priceHistory.length < 2) return;
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
@@ -470,28 +467,32 @@
             const range = max - min || 1;
             const padding = 20;
 
+            const getX = (i) => (i / (priceHistory.length - 1)) * w;
+            const getY = (price) => h - ((price - min) / range) * (h - padding * 2) - padding;
+
+            // 绘制渐变填充
             const gradient = ctx.createLinearGradient(0, 0, 0, h);
             gradient.addColorStop(0, 'rgba(201,161,94,0.35)');
             gradient.addColorStop(1, 'rgba(201,161,94,0)');
 
             ctx.beginPath();
-            const getX = (i) => (i / (priceHistory.length - 1)) * w;
-            const getY = (price) => h - ((price - min) / range) * (h - padding * 2) - padding;
-
             ctx.moveTo(getX(0), getY(priceHistory[0]));
             for (let i = 1; i < priceHistory.length; i++) {
                 ctx.lineTo(getX(i), getY(priceHistory[i]));
             }
+            // 先保存折线路径
             ctx.strokeStyle = '#c9a15e';
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            ctx.lineTo(w, h);
-            ctx.lineTo(0, h);
+            // 填充区域：从最后一个点向下延伸到 x 轴，再回到第一个点下方
+            ctx.lineTo(getX(priceHistory.length - 1), h);
+            ctx.lineTo(getX(0), h);
             ctx.closePath();
             ctx.fillStyle = gradient;
             ctx.fill();
 
+            // 最后一点高亮
             const lastX = getX(priceHistory.length - 1);
             const lastY = getY(priceHistory[priceHistory.length - 1]);
             ctx.beginPath();
