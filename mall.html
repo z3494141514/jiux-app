@@ -229,9 +229,9 @@
             font-size: 14px;
         }
         .asset-row:last-child { border: none; }
-        .exchange-btn {
-            margin-top:12px;
-            width:100%;
+        .btn-row{display:flex;gap:10px;margin-top:12px;}
+        .exchange-btn,.withdraw-btn {
+            flex:1;
             height:38px;
             background:#8c1c13;
             color:#fff;
@@ -359,6 +359,16 @@
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
         }
+
+        /* 提现弹窗 */
+        .mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9998;display:none;}
+        .pop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:85%;max-width:340px;background:#fff;border-radius:16px;padding:20px;z-index:9999;display:none;}
+        .pop h4{text-align:center;margin-bottom:15px;color:#8c1c13;}
+        .pop input{width:100%;height:40px;padding:0 10px;border:1px solid #ddd;border-radius:8px;margin-bottom:15px;}
+        .pop .btn-group{display:flex;gap:10px;}
+        .pop button{flex:1;height:40px;border:none;border-radius:8px;}
+        .pop .cancel{background:#eee;color:#333;}
+        .pop .submit{background:#8c1c13;color:#fff;}
     </style>
 </head>
 <body>
@@ -444,7 +454,10 @@
             <div class="asset-row"><span>数字资产</span><span id="assetVal">0.00</span></div>
             <div class="asset-row"><span>酒豆</span><span id="beanVal">0</span></div>
             <div class="asset-row"><span>酒令(支付)</span><span id="tokenVal">0</span></div>
-            <button class="exchange-btn" onclick="assetToBean()">数字资产兑换酒豆</button>
+            <div class="btn-row">
+                <button class="exchange-btn" onclick="assetToBean()">资产转酒豆</button>
+                <button class="withdraw-btn" onclick="openWithdrawPop()">酒豆提现</button>
+            </div>
         </div>
 
         <div class="order-module">
@@ -477,6 +490,17 @@
         </div>
     </div>
 
+    <!-- 提现弹窗 -->
+    <div class="mask" id="mask"></div>
+    <div class="pop" id="withdrawPop">
+        <h4>酒豆提现申请</h4>
+        <input type="number" id="withdrawNum" placeholder="请输入提现酒豆数量" min="1">
+        <div class="btn-group">
+            <button class="cancel" onclick="closeWithdrawPop()">取消</button>
+            <button class="submit" onclick="submitWithdraw()">提交申请</button>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -502,7 +526,7 @@
             setTimeout(() => toast.classList.remove('show'), 1800);
         }
 
-        // 加载全局配置 + 执行每日算力释放
+        // 加载全局配置 + 每日算力释放
         async function loadConfigAndRelease() {
             let res = await fetch(API);
             let json = await res.json();
@@ -511,7 +535,7 @@
             await doDailyRelease(allData);
         }
 
-        // 每日算力释放逻辑
+        // 每日算力自动释放
         async function doDailyRelease(allData) {
             const now = new Date();
             const todayStr = now.toLocaleDateString();
@@ -519,10 +543,8 @@
             const releaseHour = globalConfig.releaseHour;
             const rate = globalConfig.releaseRate;
 
-            // 判断今日是否已执行释放
             let todayLog = allData.releaseLog.find(x => x.date === todayStr);
             if (todayLog) return;
-            // 判断是否到设置小时
             if (nowHour < releaseHour) return;
 
             let count = 0;
@@ -535,24 +557,21 @@
                 count++;
             });
 
-            // 新增释放记录
             allData.releaseLog.push({
                 date: todayStr,
                 userCount: count,
                 fullTime: now.toLocaleString()
             });
 
-            // 保存数据
             await fetch(API, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ data: JSON.stringify(allData) })
             });
-            // 刷新本地用户
             refreshLocalUser();
         }
 
-        // 刷新本地登录用户
+        // 刷新本地用户数据
         async function refreshLocalUser() {
             let res = await fetch(API);
             let json = await res.json();
@@ -564,7 +583,7 @@
             if(newUser) localStorage.setItem("loginUser", JSON.stringify(newUser));
         }
 
-        // 资产兑换：数字资产 => 酒豆
+        // 数字资产转酒豆
         async function assetToBean() {
             let userStr = localStorage.getItem("loginUser");
             if(!userStr) return;
@@ -579,7 +598,6 @@
             user.asset = "0.00";
             user.bean = (parseInt(user.bean) || 0) + addBean;
 
-            // 更新后端
             let res = await fetch(API);
             let json = await res.json();
             let allData = JSON.parse(json.data);
@@ -595,7 +613,56 @@
             showToast(`兑换成功！获得 ${addBean} 酒豆`);
         }
 
-        // 底部导航
+        // ========== 酒豆提现弹窗 ==========
+        function openWithdrawPop(){
+            document.getElementById('mask').style.display = 'block';
+            document.getElementById('withdrawPop').style.display = 'block';
+            document.getElementById('withdrawNum').value = '';
+        }
+        function closeWithdrawPop(){
+            document.getElementById('mask').style.display = 'none';
+            document.getElementById('withdrawPop').style.display = 'none';
+        }
+
+        // 提交提现申请
+        async function submitWithdraw(){
+            let num = parseInt(document.getElementById('withdrawNum').value);
+            if(!num || num <= 0){
+                showToast("请输入合法提现数量");
+                return;
+            }
+            let userStr = localStorage.getItem("loginUser");
+            if(!userStr) return;
+            let user = JSON.parse(userStr);
+            let bean = parseInt(user.bean)||0;
+            if(bean < num){
+                showToast("酒豆余额不足");
+                return;
+            }
+
+            // 提交提现记录到后台
+            let res = await fetch(API);
+            let json = await res.json();
+            let allData = JSON.parse(json.data);
+
+            allData.withdrawLog.push({
+                phone: user.phone,
+                beanNum: num,
+                applyTime: new Date().toLocaleString(),
+                status: "wait"  // wait待审核 pass通过 refuse拒绝
+            });
+
+            await fetch(API,{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({data:JSON.stringify(allData)})
+            });
+
+            closeWithdrawPop();
+            showToast("提现申请已提交，请等待后台审核");
+        }
+
+        // 底部导航切换
         const footerItems = document.querySelectorAll('.footer-item');
         const pages = document.querySelectorAll('.page');
         footerItems.forEach(item => {
@@ -616,7 +683,7 @@
             })
         });
 
-        // 订单Tab
+        // 订单Tab切换
         const orderTabs = document.querySelectorAll('.order-tab-item');
         const tabLine = document.querySelector('.tab-line');
         function switchOrderTab(idx) {
@@ -629,7 +696,7 @@
             tab.addEventListener('click', () => switchOrderTab(idx));
         });
 
-        // 跳转付款页
+        // 跳转支付页
         function goPay(goodsId, price) {
             location.href = `pay.html?gid=${goodsId}&price=${price}`;
         }

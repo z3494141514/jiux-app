@@ -9,63 +9,78 @@
         body{background:#f5f7fa;padding:20px;}
         .container{max-width:1200px;margin:0 auto;}
         .header{background:#8c1c13;color:#fff;padding:16px 20px;border-radius:8px;margin-bottom:20px;}
-        .tab-box{display:flex;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:20px;}
-        .tab-item{padding:14px 24px;cursor:pointer;border:none;background:transparent;}
+        .tab-box{display:flex;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:20px;flex-wrap:wrap;}
+        .tab-item{padding:14px 20px;cursor:pointer;border:none;background:transparent;font-size:14px;}
         .tab-item.active{background:#8c1c13;color:#fff;}
-        .panel{background:#fff;padding:20px;border-radius:8px;display:none;}
+        .panel{background:#fff;padding:20px;border-radius:8px;display:none;margin-bottom:15px;}
         .panel.active{display:block;}
         .form-item{margin-bottom:16px;}
         label{display:block;margin-bottom:6px;color:#333;}
         input{width:300px;height:38px;padding:0 10px;border:1px solid #ccc;border-radius:4px;}
-        button{padding:8px 20px;background:#8c1c13;color:#fff;border:none;border-radius:4px;cursor:pointer;}
+        select{width:300px;height:38px;padding:0 10px;border:1px solid #ccc;border-radius:4px;}
+        button{padding:8px 20px;background:#8c1c13;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:8px;}
+        button.gray{background:#999;}
         table{width:100%;border-collapse:collapse;margin-top:10px;}
-        th,td{border:1px solid #eee;padding:10px;text-align:center;}
+        th,td{border:1px solid #eee;padding:10px;text-align:center;font-size:13px;}
         th{background:#f9f9f9;}
         .tip{color:#666;margin:8px 0;font-size:13px;}
+        .mini-input{width:80px;height:30px;}
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header"><h2>酒蕴茶乡 管理后台</h2></div>
+        <div class="header"><h2>酒蕴茶乡 综合管理后台</h2></div>
 
         <div class="tab-box">
-            <button class="tab-item active" data-tab="config">全局参数配置</button>
-            <button class="tab-item" data-tab="user">会员管理</button>
+            <button class="tab-item active" data-tab="config">全局参数</button>
+            <button class="tab-item" data-tab="user">会员管理&充值</button>
             <button class="tab-item" data-tab="order">订单管理</button>
-            <button class="tab-item" data-tab="log">算力释放记录</button>
+            <button class="tab-item" data-tab="withdraw">提现审核</button>
+            <button class="tab-item" data-tab="rechargeLog">充值记录</button>
+            <button class="tab-item" data-tab="releaseLog">算力释放日志</button>
         </div>
 
-        <!-- 1. 全局配置面板 -->
+        <!-- 1. 全局参数配置 -->
         <div class="panel active" id="panel-config">
-            <h3>业务参数设置（全部前端实时生效）</h3>
-            <p class="tip">修改后点击【保存配置】立即生效</p>
+            <h3>业务参数设置</h3>
+            <p class="tip">修改后保存立即生效，影响全平台规则</p>
             <div class="form-item">
                 <label>购买赠送算力倍数</label>
                 <input type="number" id="powerRatio" step="0.1">
             </div>
             <div class="form-item">
-                <label>每日算力释放开始时间（小时 0-23）</label>
+                <label>每日算力释放开始小时(0-23)</label>
                 <input type="number" id="releaseHour" min="0" max="23">
             </div>
             <div class="form-item">
-                <label>每日算力释放比例（0.01=1%）</label>
+                <label>每日算力释放比例(0.01=1%)</label>
                 <input type="number" id="releaseRate" step="0.01">
             </div>
             <div class="form-item">
-                <label>数字资产 转 酒豆 比例（1:N）</label>
+                <label>数字资产 → 酒豆 兑换比例(1:N)</label>
                 <input type="number" id="assetToBeanRate">
             </div>
             <button onclick="saveConfig()">保存配置</button>
         </div>
 
-        <!-- 2. 会员管理面板 -->
+        <!-- 2. 会员管理 + 酒令充值 -->
         <div class="panel" id="panel-user">
-            <h3>全部会员列表</h3>
+            <h3>会员列表 & 酒令充值</h3>
+            <p class="tip">选中会员，填写充值数量，点击充值即可增加用户酒令</p>
+            <div class="form-item">
+                <label>选择会员手机号</label>
+                <select id="userSelect"></select>
+            </div>
+            <div class="form-item">
+                <label>充值酒令数量</label>
+                <input type="number" id="rechargeNum" min="1" value="100">
+            </div>
+            <button onclick="userRecharge()">确认充值</button>
+
             <table>
                 <thead>
                     <tr>
                         <th>会员ID(手机号)</th>
-                        <th>邀请码</th>
                         <th>总算力</th>
                         <th>数字资产</th>
                         <th>酒豆</th>
@@ -77,35 +92,68 @@
             </table>
         </div>
 
-        <!-- 3. 订单管理面板 -->
+        <!-- 3. 订单管理（修改订单状态） -->
         <div class="panel" id="panel-order">
-            <h3>全部订单列表</h3>
+            <h3>全部订单 & 状态修改</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>所属会员</th>
+                        <th>会员</th>
                         <th>商品编号</th>
-                        <th>支付金额</th>
-                        <th>订单状态</th>
+                        <th>金额</th>
+                        <th>当前状态</th>
                         <th>下单时间</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="orderTable"></tbody>
             </table>
         </div>
 
-        <!-- 4. 算力释放记录 -->
-        <div class="panel" id="panel-log">
+        <!-- 4. 提现审核（酒豆提现） -->
+        <div class="panel" id="panel-withdraw">
+            <h3>用户酒豆提现审核</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>会员</th>
+                        <th>提现酒豆数量</th>
+                        <th>申请时间</th>
+                        <th>当前状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="withdrawTable"></tbody>
+            </table>
+        </div>
+
+        <!-- 5. 充值记录 -->
+        <div class="panel" id="panel-rechargeLog">
+            <h3>后台酒令充值记录</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>会员手机号</th>
+                        <th>充值数量</th>
+                        <th>充值时间</th>
+                    </tr>
+                </thead>
+                <tbody id="rechargeLogTable"></tbody>
+            </table>
+        </div>
+
+        <!-- 6. 算力释放日志 -->
+        <div class="panel" id="panel-releaseLog">
             <h3>每日算力释放执行记录</h3>
             <table>
                 <thead>
                     <tr>
                         <th>执行日期</th>
                         <th>释放人数</th>
-                        <th>执行时间</th>
+                        <th>完整时间</th>
                     </tr>
                 </thead>
-                <tbody id="logTable"></tbody>
+                <tbody id="releaseLogTable"></tbody>
             </table>
         </div>
     </div>
@@ -122,13 +170,15 @@
                 let t = this.dataset.tab;
                 document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
                 document.getElementById('panel-'+t).classList.add('active');
-                if(t==='user') renderUser();
+                if(t==='user'){ loadUserSelect(); renderUser(); }
                 if(t==='order') renderOrder();
-                if(t==='log') renderLog();
+                if(t==='withdraw') renderWithdraw();
+                if(t==='rechargeLog') renderRechargeLog();
+                if(t==='releaseLog') renderReleaseLog();
             })
         })
 
-        // 加载全部数据
+        // 加载全局数据
         async function loadData(){
             let res = await fetch(API);
             let json = await res.json();
@@ -140,7 +190,7 @@
             document.getElementById('assetToBeanRate').value = allData.config.assetToBeanRate;
         }
 
-        // 保存配置
+        // 保存全局配置
         async function saveConfig(){
             allData.config.powerRatio = parseFloat(document.getElementById('powerRatio').value);
             allData.config.releaseHour = parseInt(document.getElementById('releaseHour').value);
@@ -150,7 +200,7 @@
             alert("配置保存成功！");
         }
 
-        // 保存整体数据
+        // 保存整份数据
         async function saveAllData(){
             await fetch(API,{
                 method:"POST",
@@ -159,13 +209,50 @@
             })
         }
 
+        // 加载会员下拉选择框（充值用）
+        function loadUserSelect(){
+            let sel = document.getElementById('userSelect');
+            sel.innerHTML = "";
+            allData.users.forEach(u=>{
+                let opt = document.createElement('option');
+                opt.value = u.phone;
+                opt.innerText = u.phone;
+                sel.appendChild(opt);
+            })
+        }
+
+        // 会员酒令充值
+        async function userRecharge(){
+            let phone = document.getElementById('userSelect').value;
+            let num = parseInt(document.getElementById('rechargeNum').value);
+            if(!num || num <= 0) return alert("请输入合法充值数量");
+
+            let user = allData.users.find(u=>u.phone === phone);
+            if(!user) return alert("会员不存在");
+
+            // 增加酒令
+            user.token = (parseInt(user.token)||0) + num;
+
+            // 新增充值记录
+            allData.rechargeLog.push({
+                phone: phone,
+                num: num,
+                time: new Date().toLocaleString()
+            });
+
+            await saveAllData();
+            await loadData();
+            loadUserSelect();
+            renderUser();
+            alert("充值成功！");
+        }
+
         // 渲染会员列表
         function renderUser(){
             let html = "";
             allData.users.forEach(u=>{
                 html += `<tr>
                     <td>${u.phone}</td>
-                    <td>${u.inviteCode}</td>
                     <td>${u.power}</td>
                     <td>${u.asset}</td>
                     <td>${u.bean}</td>
@@ -176,27 +263,109 @@
             document.getElementById('userTable').innerHTML = html;
         }
 
-        // 渲染订单
+        // 渲染订单 + 修改订单状态
         function renderOrder(){
             let html = "";
             allData.users.forEach(u=>{
                 if(!u.orderList) return;
-                u.orderList.forEach(o=>{
-                    let status = o.status==='wait'?'待发货':o.status==='send'?'已发货':'已收货';
+                u.orderList.forEach((o,idx)=>{
+                    let statusText = o.status==='wait'?'待发货':o.status==='send'?'已发货':'已收货';
                     html += `<tr>
                         <td>${u.phone}</td>
                         <td>${o.goodsId}</td>
                         <td>${o.price}</td>
-                        <td>${status}</td>
+                        <td>${statusText}</td>
                         <td>${o.time}</td>
+                        <td>
+                            <select class="mini-input" id="orderSel_${u.phone}_${idx}">
+                                <option value="wait" ${o.status==='wait'?'selected':''}>待发货</option>
+                                <option value="send" ${o.status==='send'?'selected':''}>已发货</option>
+                                <option value="done" ${o.status==='done'?'selected':''}>已收货</option>
+                            </select>
+                            <button onclick="changeOrderStatus('${u.phone}',${idx})">修改</button>
+                        </td>
                     </tr>`;
                 })
             })
             document.getElementById('orderTable').innerHTML = html;
         }
 
-        // 渲染释放记录
-        function renderLog(){
+        // 修改订单状态
+        async function changeOrderStatus(phone,idx){
+            let sel = document.getElementById(`orderSel_${phone}_${idx}`);
+            let newStatus = sel.value;
+            let user = allData.users.find(u=>u.phone === phone);
+            if(user && user.orderList[idx]){
+                user.orderList[idx].status = newStatus;
+                await saveAllData();
+                alert("订单状态修改成功");
+                renderOrder();
+            }
+        }
+
+        // 渲染提现列表 & 审核操作
+        function renderWithdraw(){
+            let html = "";
+            allData.withdrawLog.forEach((item,idx)=>{
+                let statusText = item.status==='wait'?'待审核':item.status==='pass'?'已通过':item.status==='refuse'?'已拒绝':'';
+                html += `<tr>
+                    <td>${item.phone}</td>
+                    <td>${item.beanNum}</td>
+                    <td>${item.applyTime}</td>
+                    <td>${statusText}</td>
+                    <td>
+                        ${item.status==='wait'?`
+                            <button onclick="auditWithdraw(${idx},'pass')">通过</button>
+                            <button class="gray" onclick="auditWithdraw(${idx},'refuse')">拒绝</button>
+                        `:'--'}
+                    </td>
+                </tr>`;
+            })
+            document.getElementById('withdrawTable').innerHTML = html;
+        }
+
+        // 提现审核
+        async function auditWithdraw(idx,type){
+            let item = allData.withdrawLog[idx];
+            if(item.status !== 'wait') return;
+
+            let user = allData.users.find(u=>u.phone === item.phone);
+            if(!user) return;
+
+            if(type === 'pass'){
+                // 审核通过：扣除用户对应酒豆
+                let bean = parseInt(user.bean)||0;
+                if(bean < item.beanNum){
+                    alert("用户酒豆不足，无法通过");
+                    return;
+                }
+                user.bean = bean - item.beanNum;
+                item.status = "pass";
+            }else{
+                // 拒绝：状态改为拒绝，不扣酒豆
+                item.status = "refuse";
+            }
+
+            await saveAllData();
+            alert(type==='pass'?"审核通过":"已拒绝");
+            renderWithdraw();
+        }
+
+        // 渲染充值记录
+        function renderRechargeLog(){
+            let html = "";
+            allData.rechargeLog.forEach(l=>{
+                html += `<tr>
+                    <td>${l.phone}</td>
+                    <td>${l.num}</td>
+                    <td>${l.time}</td>
+                </tr>`;
+            })
+            document.getElementById('rechargeLogTable').innerHTML = html;
+        }
+
+        // 渲染算力释放日志
+        function renderReleaseLog(){
             let html = "";
             allData.releaseLog.forEach(l=>{
                 html += `<tr>
@@ -205,7 +374,7 @@
                     <td>${l.fullTime}</td>
                 </tr>`;
             })
-            document.getElementById('logTable').innerHTML = html;
+            document.getElementById('releaseLogTable').innerHTML = html;
         }
 
         window.onload = loadData;
