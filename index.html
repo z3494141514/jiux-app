@@ -19,7 +19,6 @@
             overflow-x: hidden;
         }
 
-        /* 顶部品牌区域 + 渐入动画 */
         .brand-wrap {
             text-align: center;
             padding: 60px 20px 40px;
@@ -42,7 +41,6 @@
             letter-spacing: 2px;
         }
 
-        /* 主卡片容器 上浮+渐入动画 */
         .container {
             padding: 0 20px 40px;
             animation: fadeInUp 1s ease 0.3s forwards;
@@ -58,7 +56,6 @@
             overflow: hidden;
         }
 
-        /* Tab 切换栏 + 滑动指示器动画 */
         .tab-nav {
             display: flex;
             position: relative;
@@ -95,7 +92,6 @@
             z-index: 1;
         }
 
-        /* 表单区域 */
         .form-content {
             padding: 30px 24px;
         }
@@ -109,7 +105,6 @@
             display: block;
         }
 
-        /* 输入框样式 + 聚焦动效 */
         .input-box {
             margin-bottom: 22px;
         }
@@ -139,7 +134,6 @@
             margin: 6px 0 0 6px;
         }
 
-        /* 渐变主按钮 动效 */
         .submit-btn {
             width: 100%;
             height: 54px;
@@ -160,41 +154,19 @@
             box-shadow: 0 3px 8px rgba(140, 28, 19, 0.2);
         }
 
-        /* 全局动画定义 */
         @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.96);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
         }
 
-        /* 消息提示弹窗 弹出动画 */
         .toast {
             position: fixed;
             left: 50%;
@@ -210,7 +182,6 @@
             transition: all 0.3s ease;
             pointer-events: none;
         }
-
         .toast.show {
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
@@ -218,7 +189,6 @@
     </style>
 </head>
 <body>
-    <!-- 顶部品牌 -->
     <div class="brand-wrap">
         <div class="brand-logo-text">酒蕴茶乡</div>
         <div class="brand-slogan">甄选天下好酒 · 茗品万千茶香</div>
@@ -226,16 +196,13 @@
 
     <div class="container">
         <div class="auth-card">
-            <!-- Tab 切换 -->
             <div class="tab-nav">
                 <div class="tab-item active" data-type="login">账号登录</div>
                 <div class="tab-item" data-type="register">新用户注册</div>
                 <div class="tab-line"></div>
             </div>
 
-            <!-- 表单区域 -->
             <div class="form-content">
-                <!-- 登录面板 -->
                 <div class="form-panel show" id="loginPanel">
                     <div class="input-box">
                         <input type="text" id="loginAccount" placeholder="请输入11位手机号">
@@ -246,7 +213,6 @@
                     <button class="submit-btn" onclick="doLogin()">立即登录</button>
                 </div>
 
-                <!-- 注册面板 -->
                 <div class="form-panel" id="registerPanel">
                     <div class="input-box">
                         <input type="text" id="regPhone" placeholder="请输入11位手机号码">
@@ -265,7 +231,6 @@
         </div>
     </div>
 
-    <!-- 消息提示 -->
     <div class="toast" id="toast"></div>
 
     <script>
@@ -276,13 +241,11 @@
         const registerPanel = document.getElementById('registerPanel');
         const toast = document.getElementById('toast');
 
-        // Tab 切换 + 滑动线条动画
         tabItems.forEach((tab, idx) => {
             tab.addEventListener('click', function () {
                 tabItems.forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
                 tabLine.style.transform = `translateX(${idx * 100}%)`;
-
                 const type = this.dataset.type;
                 if (type === 'login') {
                     loginPanel.classList.add('show');
@@ -294,16 +257,12 @@
             })
         });
 
-        // 消息提示
         function showToast(text) {
             toast.innerText = text;
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2200);
+            setTimeout(() => toast.classList.remove('show'), 2200);
         }
 
-        // 读取用户数据 + 容错初始化（修复空数据报错）
         async function getUserData() {
             const res = await fetch(API);
             const json = await res.json();
@@ -313,14 +272,10 @@
             } catch (e) {
                 data = {};
             }
-            // 强制保证用户数组存在
-            if (!Array.isArray(data.users)) {
-                data.users = [];
-            }
+            if (!Array.isArray(data.users)) data.users = [];
             return data;
         }
 
-        // 保存用户数据
         async function saveUserData(data) {
             await fetch(API, {
                 method: "POST",
@@ -329,7 +284,7 @@
             });
         }
 
-        // 登录逻辑
+        // 登录逻辑：登录成功 → 跳转到 mall.html
         async function doLogin() {
             const account = document.getElementById('loginAccount').value.trim();
             const pwd = document.getElementById('loginPwd').value.trim();
@@ -342,14 +297,16 @@
             const user = userData.users.find(item => item.phone === account && item.pwd === pwd);
             if (user) {
                 showToast('登录成功');
-                // 后续可修改为商城页面地址
-                setTimeout(() => location.reload(), 1500);
+                // 保存登录信息到本地存储
+                localStorage.setItem("loginUser", JSON.stringify(user));
+                // 核心跳转：1.2秒后打开 mall.html
+                setTimeout(() => location.href = "mall.html", 1200);
             } else {
                 showToast('账号或密码错误');
             }
         }
 
-        // 注册 + 邀请码绑定上下级
+        // 注册逻辑：新增用户并补齐会员资产字段
         async function doRegister() {
             const phone = document.getElementById('regPhone').value.trim();
             const pwd = document.getElementById('regPwd').value.trim();
@@ -359,22 +316,23 @@
             if (pwd.length < 6) return showToast('密码不能少于6位');
 
             const userData = await getUserData();
-            // 校验手机号是否已注册
             if (userData.users.some(u => u.phone === phone)) return showToast('该手机号已注册');
 
-            // 匹配上级邀请人
             const parent = invite ? userData.users.find(u => u.phone === invite) : null;
-
             const newUser = {
                 phone: phone,
                 pwd: pwd,
                 inviteCode: invite,
                 parentPhone: parent ? parent.phone : '',
-                createTime: new Date().toLocaleString()
+                createTime: new Date().toLocaleString(),
+                avatar: "",
+                power: "100",
+                asset: "0.00",
+                bean: "88",
+                token: "10"
             };
             userData.users.push(newUser);
             await saveUserData(userData);
-
             showToast('注册成功，请登录');
             tabItems[0].click();
         }
