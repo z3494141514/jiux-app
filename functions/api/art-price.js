@@ -1,63 +1,82 @@
-// 公共 BSC RPC（可用你自己的节点）
-const RPC_URL = 'https://bsc-dataseed.binance.org/';
-// ART/WBNB PancakeSwap V2 Pair 合约（已创建好的交易对，可通过工厂获取，这里直接写死）
-const PAIR_ADDRESS = '0x...'; // 你需要填入正确的 ART/WBNB 交易对地址
-
 export async function onRequest({ request, env }) {
+  const RPC = 'https://bsc-dataseed.binance.org/';
+  const ART = '0x7ff6eeb4020dad718a791cf5f6c3e72027666666';
+  const WBNB = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
+  const FACTORY = '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73';
+
   try {
-    // 1. 获取 Pair 储备量
-    const pairData = await fetch(RPC_URL, {
+    // 1. 通过 Factory 获取交易对地址
+    const pairAddr = await fetch(RPC, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jsonrpc: '2.0',
         method: 'eth_call',
-        params: [
-          {
-            to: PAIR_ADDRESS,
-            data: '0x0902f1ac' // getReserves() 方法签名
-          },
-          'latest'
-        ],
+        params: [{
+          to: FACTORY,
+          data: '0xe6a43905' + // getPair(address,address)
+                '000000000000000000000000' + ART.substring(2) +
+                '000000000000000000000000' + WBNB.substring(2)
+        }, 'latest'],
         id: 1
       })
     }).then(r => r.json());
 
-    if (pairData.error) throw new Error('获取储备失败');
-    const raw = pairData.result;
-    // 解析 getReserves 返回值：_reserve0, _reserve1, _blockTimestampLast
-    const reserve0 = BigInt('0x' + raw.substr(2, 64));
-    const reserve1 = BigInt('0x' + raw.substr(66, 64));
-    
-    // 2. 确定代币顺序（需知道 ART 和 WBNB 在 pair 中的顺序）
-    //    这里假设 ART 是 token0，WBNB 是 token1
-    //    如果不是，调换顺序即可
-    const artReserve = Number(reserve0) / 1e18;  // ART 18位
-    const wbnbReserve = Number(reserve1) / 1e18; // WBNB 18位
-    
-    if (artReserve <= 0 || wbnbReserve <= 0) throw new Error('流动性为空');
-    
+    if (pairAddr.error || !pairAddr.result || pairAddr.result === '0x0000000000000000000000000000000000000000') {
+      throw new Error('交易对未创建');
+    }
+    const pair = '0x' + pairAddr.result.substring(26); // 去掉前面补的 0
+
+    // 2. 获取储备量
+    const reserves = await fetch(RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{
+          to: pair,
+          data: '0x0902f1ac' // getReserves()
+        }, 'latest'],
+        id: 2
+      })
+    }).then(r => r.json());
+
+    if (reserves.error) throw new Error('获取储备失败');
+
+    const raw = reserves.result;
+    const reserve0 = BigInt('0x' + raw.substring(2, 66));
+    const reserve1 = BigInt('0x' + raw.substring(66, 130));
+
+    // 3. 确认代币顺序（ART 和 WBNB 谁在前？）
+    // 通过比较合约地址大小确定，但更简单：先假设 ART 是 token0，WBNB 是 token1
+    // 如果不是，调换即可。我们可以通过小量测试，但这里先按常见情况处理：WBNB 地址较大，ART 较小，所以 ART 可能是 token0，WBNB 是 token1。
+    const artReserve = Number(reserve0) / 1e18;
+    const wbnbReserve = Number(reserve1) / 1e18;
+
+    if (artReserve <= 0 || wbnbReserve <= 0) throw new Error('流动性为0');
+
     const artPriceInBnb = wbnbReserve / artReserve;
 
-    // 3. 获取 BNB/USD 价格（可换成其他 API，这里用币安）
-    const bnbUsd = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
+    // 4. BNB 价格
+    const bnbPrice = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
       .then(r => r.json())
       .then(d => parseFloat(d.price));
-    
-    const artPriceUsd = artPriceInBnb * bnbUsd;
 
-    // 4. 返回精简数据
+    const artPriceUsd = (artPriceInBnb * bnbPrice).toFixed(6);
+
     return new Response(JSON.stringify({
       code: 0,
       data: {
-        price: artPriceUsd.toFixed(6),
-        change24h: 0,            // 24h变化可后续补充
+        price: artPriceUsd,
+        change24h: 0,
         volume24h: 0,
         liquidity: 0,
         fdv: 0
       }
     }), { headers: { 'Content-Type': 'application/json' } });
-  } catch (err) {
-    return new Response(JSON.stringify({ code: 1, msg: err.message }), { status: 500 });
+
+  } catch (e) {
+    return new Response(JSON.stringify({ code: 1, msg: e.message }), { status: 500 });
   }
 }
