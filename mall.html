@@ -58,7 +58,7 @@
             cursor: pointer;
         }
         .goods-item:active { transform: scale(0.99); }
-        .goods-item img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; margin-right: 14px; flex-shrink: 0; }
+        .goods-item img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; margin-right: 14px; flex-shrink: 0; background: #f0f0f0; }
         .goods-item .goods-info { flex: 1; }
         .goods-item .goods-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
         .goods-item .goods-price { font-size: 16px; color: var(--primary); font-weight: 700; }
@@ -222,7 +222,6 @@
 <body>
     <div class="header"><div class="logo">酒蕴茶乡</div><input class="search-box" placeholder="搜索好物..."></div>
 
-    <!-- 首页 -->
     <div class="page active" id="homePage">
         <div class="banner"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
         <div class="assurance">
@@ -236,7 +235,6 @@
         <div class="goods-list" id="goodsContainer"></div>
     </div>
 
-    <!-- 行情页 -->
     <div class="page" id="cartPage">
         <div class="market-bg">
             <div class="price-hero">
@@ -261,7 +259,6 @@
         </div>
     </div>
 
-    <!-- 会员中心 -->
     <div class="page" id="memberPage">
         <div class="member-header">
             <img class="avatar" src="https://picsum.photos/120/120?avatar">
@@ -338,7 +335,6 @@
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
 
-        // 导航切换
         document.querySelectorAll('.footer-item').forEach(item => {
             item.addEventListener('click', function () {
                 document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
@@ -359,59 +355,64 @@
             })
         });
 
-        // 加载行情（通过你自己的服务端代理，国内也能访问）
         async function loadArtPrice() {
             try {
                 const res = await fetch('/api/art-price');
                 const json = await res.json();
                 if (json.code === 0 && json.data) {
                     const d = json.data;
-                    const price = parseFloat(d.price);
+                    document.getElementById('artPrice').innerText = '$' + parseFloat(d.price).toFixed(6);
                     const change = parseFloat(d.change24h);
-                    const liquidity = parseFloat(d.liquidity);
-                    const fdv = parseFloat(d.fdv);
-
-                    document.getElementById('artPrice').innerText = '$' + (price ? price.toFixed(6) : '0.000000');
                     const changeEl = document.getElementById('artChangeLabel');
                     changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
                     changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
-                    document.getElementById('liquidity').innerText = liquidity > 0 ? '$' + formatVolume(liquidity) : '--';
-                    document.getElementById('fdv').innerText = fdv > 0 ? '$' + formatVolume(fdv) : '--';
+                    document.getElementById('liquidity').innerText = d.liquidity ? '$' + formatVolume(d.liquidity) : '--';
+                    document.getElementById('fdv').innerText = d.fdv ? '$' + formatVolume(d.fdv) : '--';
                 } else {
                     document.getElementById('artPrice').innerText = '--';
                 }
             } catch (err) {
                 console.error('行情获取失败', err);
-                document.getElementById('artPrice').innerText = '--';
             }
         }
 
         function formatVolume(vol) {
-            if (vol >= 1000000) return (vol / 1000000).toFixed(2) + 'M';
-            if (vol >= 1000) return (vol / 1000).toFixed(2) + 'K';
-            return vol.toFixed(2);
+            const v = parseFloat(vol);
+            if (isNaN(v)) return '--';
+            if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M';
+            if (v >= 1000) return (v / 1000).toFixed(2) + 'K';
+            return v.toFixed(2);
         }
 
-        // ====== 商品列表 ======
         async function loadGoods(){
-            const res = await fetch(`${API}/goods-list`);
-            const data = await res.json();
-            const list = data.list || [];
-            let html='';
-            list.forEach(g=>{
-                const stock = g.stock || 0;
-                const sales = g.sales || 0;
-                html+=`<div class="goods-item" onclick="location.href='pay.html?gid=${g.id}&price=${g.price}'">
-                    <img src="${g.image_url}">
-                    <div class="goods-info">
-                        <div class="goods-name">${g.name}</div>
-                        <div class="goods-price">¥ ${g.price}</div>
-                        <div class="goods-meta">已售 ${sales} · 库存 ${stock}</div>
-                    </div>
-                    <button class="buy-btn" onclick="event.stopPropagation(); location.href='pay.html?gid=${g.id}&price=${g.price}'">立即购买</button>
-                </div>`;
-            });
-            document.getElementById('goodsContainer').innerHTML=html||'<p style="text-align:center;padding:30px;">暂无商品</p>';
+            const container = document.getElementById('goodsContainer');
+            container.innerHTML = '<p style="text-align:center;padding:30px;color:#999;">商品加载中...</p>';
+            try {
+                const res = await fetch(`${API}/goods-list`);
+                const data = await res.json();
+                const list = data.list || [];
+                let html='';
+                if (list.length === 0) {
+                    html = '<p style="text-align:center;padding:30px;">暂无商品</p>';
+                } else {
+                    list.forEach(g=>{
+                        const stock = g.stock || 0;
+                        const sales = g.sales || 0;
+                        html += `<div class="goods-item" onclick="location.href='pay.html?gid=${g.id}&price=${g.price}'">
+                            <img src="${g.image_url}" alt="${g.name}" loading="lazy">
+                            <div class="goods-info">
+                                <div class="goods-name">${g.name}</div>
+                                <div class="goods-price">¥ ${g.price}</div>
+                                <div class="goods-meta">已售 ${sales} · 库存 ${stock}</div>
+                            </div>
+                            <button class="buy-btn" onclick="event.stopPropagation(); location.href='pay.html?gid=${g.id}&price=${g.price}'">立即购买</button>
+                        </div>`;
+                    });
+                }
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<p style="text-align:center;padding:30px;">加载失败，请重试</p>';
+            }
         }
 
         function copyInvite(){ navigator.clipboard.writeText(document.getElementById('memberInvite').innerText).then(()=>showToast('复制成功')); }
@@ -435,7 +436,6 @@
             loadWithdrawLog();
         }
 
-        // 订单时间转换为北京时间
         async function loadOrders(status){
             curOrderStatus=status;
             document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
@@ -450,8 +450,7 @@
                 const statusMap={wait:'待发货',send:'已发货',done:'已收货'};
                 let displayTime = '';
                 try {
-                    const dateObj = new Date(o.create_time);
-                    displayTime = dateObj.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                    displayTime = new Date(o.create_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
                 } catch (e) {
                     displayTime = o.create_time || '未知时间';
                 }
