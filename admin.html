@@ -486,11 +486,12 @@
             loadAllData();
         }
 
-        // ---------- 会员关系 ----------
+        // ---------- 会员关系（修复版） ----------
         async function loadRelation() {
             const phone = document.getElementById('relationPhone').value.trim();
             if (!phone) return showMsg('请输入手机号');
             try {
+                // 始终从服务端获取最新数据
                 const res = await fetch(`${API}/user?phone=${phone}`);
                 const data = await res.json();
                 if (data.code === 0) {
@@ -514,9 +515,9 @@
             });
             const data = await res.json();
             showMsg(data.msg || '更新成功');
-            // 重新查询该用户，刷新显示
+            // 修改后立即重新查询，显示最新上级
             await loadRelation();
-            // 同时刷新全局数据，保证会员列表等显示最新
+            // 同时刷新全局数据，保证会员列表等同步
             loadAllData();
         }
 
