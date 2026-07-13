@@ -20,19 +20,20 @@ export async function onRequest({ request, env }) {
   // POST 新增或更新
   if (request.method === 'POST') {
     const body = await request.json();
-    const { id: updateId, name, price, image_url, description, status, sort, required_level, upgrade_level, stock } = body;
+    // 增加 pay_type 字段（默认 token）
+    const { id: updateId, name, price, image_url, description, status, sort, required_level, upgrade_level, stock, pay_type } = body;
 
     if (updateId) {
       // 更新商品（销量不应由后台编辑，所以不更新 sales）
       await env.DB.prepare(
-        "UPDATE goods SET name=?, price=?, image_url=?, description=?, status=?, sort=?, required_level=?, upgrade_level=?, stock=? WHERE id=?"
-      ).bind(name, price, image_url, description, status, sort, required_level || 0, upgrade_level || 0, stock || 0, updateId).run();
+        "UPDATE goods SET name=?, price=?, image_url=?, description=?, status=?, sort=?, required_level=?, upgrade_level=?, stock=?, pay_type=? WHERE id=?"
+      ).bind(name, price, image_url, description, status, sort, required_level || 0, upgrade_level || 0, stock || 0, pay_type || 'token', updateId).run();
       return new Response(JSON.stringify({ code: 0, msg: '更新成功' }));
     } else {
       // 新增商品
       await env.DB.prepare(
-        "INSERT INTO goods (name, price, image_url, description, status, sort, required_level, upgrade_level, stock, sales) VALUES (?,?,?,?,?,?,?,?,?,0)"
-      ).bind(name, price, image_url, description, status, sort || 0, required_level || 0, upgrade_level || 0, stock || 0).run();
+        "INSERT INTO goods (name, price, image_url, description, status, sort, required_level, upgrade_level, stock, sales, pay_type) VALUES (?,?,?,?,?,?,?,?,?,0,?)"
+      ).bind(name, price, image_url, description, status, sort || 0, required_level || 0, upgrade_level || 0, stock || 0, pay_type || 'token').run();
       return new Response(JSON.stringify({ code: 0, msg: '添加成功' }));
     }
   }
