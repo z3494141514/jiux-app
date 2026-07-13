@@ -252,7 +252,7 @@
             <div class="price-hero">
                 <div class="coin-header">
                     <span class="coin-badge">ART / BSC</span>
-                    <span style="color:#aab;">DexScreener</span>
+                    <span style="color:#aab;">PancakeSwap</span>
                 </div>
                 <div class="price-main" id="artPrice">--</div>
                 <div class="change-row">
@@ -274,7 +274,7 @@
                     <canvas id="priceChart"></canvas>
                 </div>
             </div>
-            <div class="footer-market">数据来源 DexScreener（服务端代理）</div>
+            <div class="footer-market">价格来自 PancakeSwap 链上数据</div>
         </div>
     </div>
 
@@ -407,9 +407,7 @@
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             const wrapper = canvas.parentNode;
-            const w = wrapper.clientWidth || 300;
-            if (w === 0) return;
-            canvas.width = w;
+            canvas.width = wrapper.clientWidth || 300;
             canvas.height = 220;
         }
 
@@ -423,34 +421,19 @@
                     if (isNaN(price)) return;
 
                     document.getElementById('artPrice').innerText = '$' + price.toFixed(6);
-                    const change = parseFloat(d.change24h);
-                    const changeEl = document.getElementById('artChangeLabel');
-                    changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-                    changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
-                    document.getElementById('volume').innerText = formatVolume(d.volume24h);
-                    document.getElementById('liquidity').innerText = formatVolume(d.liquidity);
-                    document.getElementById('fdv').innerText = formatVolume(d.fdv);
+                    document.getElementById('artChangeLabel').innerText = '0.00%';
+                    document.getElementById('volume').innerText = '--';
+                    document.getElementById('liquidity').innerText = d.liquidity || '--';
+                    document.getElementById('fdv').innerText = '--';
 
                     priceHistory.push(price);
                     if (priceHistory.length > MAX_HISTORY) priceHistory.shift();
                     saveHistory();
                     drawChart();
-                } else {
-                    // 如果接口返回异常，显示默认值
-                    document.getElementById('artPrice').innerText = '--';
-                    document.getElementById('artChangeLabel').innerText = '--';
                 }
             } catch (err) {
                 console.error('行情获取失败', err);
             }
-        }
-
-        function formatVolume(vol) {
-            const v = parseFloat(vol);
-            if (isNaN(v)) return '--';
-            if (v >= 1000000) return '$' + (v / 1000000).toFixed(2) + 'M';
-            if (v >= 1000) return '$' + (v / 1000).toFixed(2) + 'K';
-            return '$' + v.toFixed(2);
         }
 
         function drawChart() {
