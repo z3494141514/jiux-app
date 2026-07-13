@@ -91,7 +91,8 @@
         .input-group input {
             width:100%;
             height:52px;
-            padding: 0 20px 0 48px;
+            /* 增大左侧内边距，避免图标与文字重叠 */
+            padding: 0 20px 0 56px;
             background: rgba(255,255,255,0.05);
             border:1px solid rgba(255,255,255,0.15);
             border-radius:14px;
@@ -106,19 +107,21 @@
             background: rgba(255,255,255,0.08);
         }
         .input-group input::placeholder { color:rgba(255,255,255,0.3); }
+        /* 图标容器绝对定位，垂直居中，固定宽高 */
         .input-icon {
             position: absolute;
-            left: 16px;
+            left: 18px;
             top: 50%;
             transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 18px;
             color: rgba(255,255,255,0.4);
             pointer-events: none;
+            line-height: 1;
         }
         .tip-text {
             font-size:12px;
@@ -243,7 +246,8 @@
             });
             const data = await res.json();
             if(data.code === 0){
-                showToast('注册成功');
+                // 注册成功后显示随机生成的邀请码
+                showToast('注册成功，您的邀请码：' + data.inviteCode);
                 tabs[0].click();
             } else showToast(data.msg || '注册失败');
         }
