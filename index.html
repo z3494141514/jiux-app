@@ -264,27 +264,38 @@
         }
 
         async function getUserData() {
-            const res = await fetch(API);
-            const json = await res.json();
-            let data = {};
             try {
-                data = JSON.parse(json.data);
-            } catch (e) {
-                data = {};
+                const res = await fetch(API);
+                if (!res.ok) throw new Error("接口异常");
+                const json = await res.json();
+                let data = {};
+                try {
+                    data = JSON.parse(json.data);
+                } catch (e) {
+                    data = {};
+                }
+                if (!Array.isArray(data.users)) data.users = [];
+                return data;
+            } catch (err) {
+                showToast("服务器连接失败");
+                console.error(err);
+                return { users: [], config: {}, rechargeLog: [], withdrawLog: [], releaseLog: [] };
             }
-            if (!Array.isArray(data.users)) data.users = [];
-            return data;
         }
 
         async function saveUserData(data) {
-            await fetch(API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ data: JSON.stringify(data) })
-            });
+            try {
+                await fetch(API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ data: JSON.stringify(data) })
+                });
+            } catch (err) {
+                showToast("保存失败");
+                console.error(err);
+            }
         }
 
-        // 登录
         async function doLogin() {
             const phone = document.getElementById('loginAccount').value.trim();
             const pwd = document.getElementById('loginPwd').value.trim();
@@ -304,7 +315,6 @@
             }
         }
 
-        // 注册：所有初始数据 = 0
         async function doRegister() {
             const phone = document.getElementById('regPhone').value.trim();
             const pwd = document.getElementById('regPwd').value.trim();
@@ -318,7 +328,6 @@
             if (userData.users.some(u => u.phone === phone)) return showToast('该账号已注册');
 
             const parent = invite ? userData.users.find(u => u.phone === invite) : null;
-            // 初始数据全部置 0
             const newUser = {
                 phone: phone,
                 pwd: pwd,
@@ -326,11 +335,11 @@
                 parentPhone: parent ? parent.phone : '',
                 createTime: new Date().toLocaleString(),
                 avatar: "",
-                power: "0",      // 算力
-                asset: "0.00",   // 数字资产
-                bean: "0",       // 酒豆
-                token: "0",      // 酒令（支付货币）
-                orderList: []    // 订单列表
+                power: "0",
+                asset: "0.00",
+                bean: "0",
+                token: "0",
+                orderList: []
             };
             userData.users.push(newUser);
             await saveUserData(userData);

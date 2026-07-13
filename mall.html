@@ -69,13 +69,13 @@
             flex: 1;
             height: 36px;
             background: rgba(255,255,255,0.95);
-            border-radius: 18px;
             border: none;
+            border-radius: 18px;
             padding: 0 20px;
             font-size: 14px;
-            transition: all 0.3s ease;
         }
         .search-box:focus {
+            outline: none;
             box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
         }
 
@@ -360,7 +360,6 @@
             transform: translate(-50%, -50%) scale(1);
         }
 
-        /* 提现弹窗 */
         .mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9998;display:none;}
         .pop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:85%;max-width:340px;background:#fff;border-radius:16px;padding:20px;z-index:9999;display:none;}
         .pop h4{text-align:center;margin-bottom:15px;color:#8c1c13;}
@@ -490,7 +489,6 @@
         </div>
     </div>
 
-    <!-- 提现弹窗 -->
     <div class="mask" id="mask"></div>
     <div class="pop" id="withdrawPop">
         <h4>酒豆提现申请</h4>
@@ -508,7 +506,6 @@
         let globalConfig = {};
         let loginUser = null;
 
-        // 轮播
         let bannerIndex = 0;
         const bannerList = document.getElementById('bannerList');
         function autoBanner() {
@@ -518,24 +515,27 @@
         }
         setInterval(autoBanner, 3000);
 
-        // 提示框
         function showToast(text) {
             const toast = document.getElementById('toast');
             toast.innerText = text;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 1800);
+            setTimeout(() => toast.classList.remove('show'), 2200);
         }
 
-        // 加载全局配置 + 每日算力释放
         async function loadConfigAndRelease() {
-            let res = await fetch(API);
-            let json = await res.json();
-            let allData = JSON.parse(json.data);
-            globalConfig = allData.config;
-            await doDailyRelease(allData);
+            try {
+                let res = await fetch(API);
+                if (!res.ok) throw new Error("接口失败");
+                let json = await res.json();
+                let allData = JSON.parse(json.data);
+                globalConfig = allData.config;
+                await doDailyRelease(allData);
+            } catch (err) {
+                showToast("服务器连接失败");
+                console.error(err);
+            }
         }
 
-        // 每日算力自动释放
         async function doDailyRelease(allData) {
             const now = new Date();
             const todayStr = now.toLocaleDateString();
@@ -563,30 +563,36 @@
                 fullTime: now.toLocaleString()
             });
 
-            await fetch(API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ data: JSON.stringify(allData) })
-            });
+            try {
+                await fetch(API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ data: JSON.stringify(allData) })
+                });
+            } catch (err) {
+                console.error(err);
+            }
             refreshLocalUser();
         }
 
-        // 刷新本地用户数据
         async function refreshLocalUser() {
-            let res = await fetch(API);
-            let json = await res.json();
-            let allData = JSON.parse(json.data);
-            let userStr = localStorage.getItem("loginUser");
-            if(!userStr) return;
-            let u = JSON.parse(userStr);
-            let newUser = allData.users.find(x => x.phone === u.phone);
-            if(newUser) localStorage.setItem("loginUser", JSON.stringify(newUser));
+            try {
+                let res = await fetch(API);
+                let json = await res.json();
+                let allData = JSON.parse(json.data);
+                let userStr = localStorage.getItem("loginUser");
+                if(!userStr) return;
+                let u = JSON.parse(userStr);
+                let newUser = allData.users.find(x => x.phone === u.phone);
+                if(newUser) localStorage.setItem("loginUser", JSON.stringify(newUser));
+            } catch (e) {
+                console.error(e);
+            }
         }
 
-        // 数字资产转酒豆
         async function assetToBean() {
             let userStr = localStorage.getItem("loginUser");
-            if(!userStr) return;
+            if(!userStr) return showToast("请先登录");
             let user = JSON.parse(userStr);
             let asset = parseFloat(user.asset) || 0;
             if(asset <= 0) {
@@ -598,22 +604,26 @@
             user.asset = "0.00";
             user.bean = (parseInt(user.bean) || 0) + addBean;
 
-            let res = await fetch(API);
-            let json = await res.json();
-            let allData = JSON.parse(json.data);
-            let idx = allData.users.findIndex(x=>x.phone === user.phone);
-            if(idx > -1) allData.users[idx] = user;
-            await fetch(API,{
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({data:JSON.stringify(allData)})
-            });
-            localStorage.setItem("loginUser", JSON.stringify(user));
-            loadMemberData();
-            showToast(`兑换成功！获得 ${addBean} 酒豆`);
+            try {
+                let res = await fetch(API);
+                let json = await res.json();
+                let allData = JSON.parse(json.data);
+                let idx = allData.users.findIndex(x=>x.phone === user.phone);
+                if(idx > -1) allData.users[idx] = user;
+                await fetch(API,{
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({data:JSON.stringify(allData)})
+                });
+                localStorage.setItem("loginUser", JSON.stringify(user));
+                loadMemberData();
+                showToast(`兑换成功！获得 ${addBean} 酒豆`);
+            } catch (err) {
+                showToast("兑换失败");
+                console.error(err);
+            }
         }
 
-        // ========== 酒豆提现弹窗 ==========
         function openWithdrawPop(){
             document.getElementById('mask').style.display = 'block';
             document.getElementById('withdrawPop').style.display = 'block';
@@ -624,7 +634,6 @@
             document.getElementById('withdrawPop').style.display = 'none';
         }
 
-        // 提交提现申请
         async function submitWithdraw(){
             let num = parseInt(document.getElementById('withdrawNum').value);
             if(!num || num <= 0){
@@ -632,7 +641,7 @@
                 return;
             }
             let userStr = localStorage.getItem("loginUser");
-            if(!userStr) return;
+            if(!userStr) return showToast("请登录");
             let user = JSON.parse(userStr);
             let bean = parseInt(user.bean)||0;
             if(bean < num){
@@ -640,29 +649,31 @@
                 return;
             }
 
-            // 提交提现记录到后台
-            let res = await fetch(API);
-            let json = await res.json();
-            let allData = JSON.parse(json.data);
+            try {
+                let res = await fetch(API);
+                let json = await res.json();
+                let allData = JSON.parse(json.data);
 
-            allData.withdrawLog.push({
-                phone: user.phone,
-                beanNum: num,
-                applyTime: new Date().toLocaleString(),
-                status: "wait"  // wait待审核 pass通过 refuse拒绝
-            });
+                allData.withdrawLog.push({
+                    phone: user.phone,
+                    beanNum: num,
+                    applyTime: new Date().toLocaleString(),
+                    status: "wait"
+                });
 
-            await fetch(API,{
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({data:JSON.stringify(allData)})
-            });
-
-            closeWithdrawPop();
-            showToast("提现申请已提交，请等待后台审核");
+                await fetch(API,{
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({data:JSON.stringify(allData)})
+                });
+                closeWithdrawPop();
+                showToast("提现申请已提交，请等待后台审核");
+            } catch (err) {
+                showToast("提交失败");
+                console.error(err);
+            }
         }
 
-        // 底部导航切换
         const footerItems = document.querySelectorAll('.footer-item');
         const pages = document.querySelectorAll('.page');
         footerItems.forEach(item => {
@@ -670,7 +681,7 @@
                 let pageType = this.dataset.page;
                 footerItems.forEach(n => n.classList.remove('active'));
                 this.classList.add('active');
-                pages.forEach(p => p.classList.remove('active'));
+                pages.forEach(p=>p.classList.remove('active'));
                 if (pageType === 'home') {
                     document.getElementById('homePage').classList.add('active');
                 } else if (pageType === 'cart') {
@@ -683,7 +694,6 @@
             })
         });
 
-        // 订单Tab切换
         const orderTabs = document.querySelectorAll('.order-tab-item');
         const tabLine = document.querySelector('.tab-line');
         function switchOrderTab(idx) {
@@ -696,12 +706,10 @@
             tab.addEventListener('click', () => switchOrderTab(idx));
         });
 
-        // 跳转支付页
         function goPay(goodsId, price) {
             location.href = `pay.html?gid=${goodsId}&price=${price}`;
         }
 
-        // 加载会员数据
         function loadMemberData() {
             let user = JSON.parse(localStorage.getItem("loginUser") || "{}");
             if (!user.phone) return;
@@ -717,7 +725,6 @@
             switchOrderTab(0);
         }
 
-        // 渲染订单
         function renderOrder(tabIndex) {
             let user = JSON.parse(localStorage.getItem("loginUser") || "{}");
             const orderList = user.orderList || [];
@@ -738,11 +745,10 @@
                         <div>状态：${item.status==='wait'?'待发货':item.status==='send'?'已发货':'已收货'}</div>
                     </div>
                 `;
-            });
+            })
             content.innerHTML = html;
         }
 
-        // 退出登录
         function logout() {
             localStorage.removeItem("loginUser");
             showToast('已安全退出登录');

@@ -22,7 +22,7 @@
         button.gray{background:#999;}
         table{width:100%;border-collapse:collapse;margin-top:10px;}
         th,td{border:1px solid #eee;padding:10px;text-align:center;font-size:13px;}
-        th{background:#f9f9f9;}
+        th{background:#f7f7f7;}
         .tip{color:#666;margin:8px 0;font-size:13px;}
         .mini-input{width:80px;height:30px;}
     </style>
@@ -48,15 +48,15 @@
                 <input type="number" id="powerRatio" step="0.1">
             </div>
             <div class="form-item">
-                <label>每日算力释放开始小时(0-23)</label>
+                <label>每日算力释放小时(0-23)</label>
                 <input type="number" id="releaseHour" min="0" max="23">
             </div>
             <div class="form-item">
-                <label>每日算力释放比例(0.01=1%)</label>
+                <label>每日算力释放比例</label>
                 <input type="number" id="releaseRate" step="0.01">
             </div>
             <div class="form-item">
-                <label>数字资产 → 酒豆 兑换比例(1:N)</label>
+                <label>数字资产兑换酒豆比例</label>
                 <input type="number" id="assetToBeanRate">
             </div>
             <button onclick="saveConfig()">保存配置</button>
@@ -138,13 +138,13 @@
         </div>
 
         <div class="panel" id="panel-releaseLog">
-            <h3>每日算力释放执行记录</h3>
+            <h3>每日算力释放记录</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>执行日期</th>
-                        <th>释放人数</th>
-                        <th>完整时间</th>
+                        <th>释放日期</th>
+                        <th>参与用户数</th>
+                        <th>执行完整时间</th>
                     </tr>
                 </thead>
                 <tbody id="releaseLogTable"></tbody>
@@ -172,17 +172,23 @@
         })
 
         async function loadData(){
-            let res = await fetch(API);
-            let json = await res.json();
-            allData = JSON.parse(json.data);
+            try {
+                let res = await fetch(API);
+                if (!res.ok) throw new Error("接口响应异常");
+                let json = await res.json();
+                allData = JSON.parse(json.data);
 
-            document.getElementById('powerRatio').value = allData.config.powerRatio;
-            document.getElementById('releaseHour').value = allData.config.releaseHour;
-            document.getElementById('releaseRate').value = allData.config.releaseRate;
-            document.getElementById('assetToBeanRate').value = allData.config.assetToBeanRate;
+                document.getElementById('powerRatio').value = allData.config.powerRatio;
+                document.getElementById('releaseHour').value = allData.config.releaseHour;
+                document.getElementById('releaseRate').value = allData.config.releaseRate;
+                document.getElementById('assetToBeanRate').value = allData.config.assetToBeanRate;
 
-            loadUserSelect();
-            renderUser();
+                loadUserSelect();
+                renderUser();
+            } catch (err) {
+                alert("接口加载失败："+err.message);
+                console.error("加载失败详情：", err);
+            }
         }
 
         async function saveConfig(){
@@ -195,16 +201,20 @@
         }
 
         async function saveAllData(){
-            await fetch(API,{
-                method:"POST",
-                body:JSON.stringify({data:JSON.stringify(allData)})
-            })
+            try {
+                await fetch(API,{
+                    method:"POST",
+                    body:JSON.stringify({data:JSON.stringify(allData)})
+                })
+            } catch (err) {
+                alert("保存失败，接口无法连接");
+                console.error(err);
+            }
         }
 
         function loadUserSelect(){
             let sel = document.getElementById('userSelect');
             sel.innerHTML = "";
-            // 新增空判断，无数据不报错
             if(!allData.users || allData.users.length === 0) return;
             allData.users.forEach(u=>{
                 let opt = document.createElement('option');
@@ -237,7 +247,6 @@
 
         function renderUser(){
             let html = "";
-            // 新增空判断
             if(!allData.users || allData.users.length === 0){
                 document.getElementById('userTable').innerHTML = "<tr><td colspan='6'>暂无会员数据</td></tr>";
                 return;

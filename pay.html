@@ -14,12 +14,17 @@
         :root {
             --main: #8c1c13;
             --main-light: #b83030;
+            --text-dark: #222;
+            --text-gray: #666;
+            --text-light: #999;
             --bg-page: #f8f3ed;
-            --white: #fff;
+            --white: #ffffff;
             --shadow: 0 8px 24px rgba(140, 28, 19, 0.12);
         }
         body {
             background: var(--bg-page);
+            color: var(--text-dark);
+            font-size: 14px;
             padding: 20px;
         }
         .pay-card {
@@ -127,11 +132,17 @@
         }
 
         async function loadConfig(){
-            let res = await fetch(API);
-            let json = await res.json();
-            let allData = JSON.parse(json.data);
-            powerRatio = allData.config.powerRatio;
-            document.getElementById('ratio').innerText = powerRatio;
+            try {
+                let res = await fetch(API);
+                if (!res.ok) throw new Error("接口请求失败");
+                let json = await res.json();
+                let allData = JSON.parse(json.data);
+                powerRatio = allData.config.powerRatio;
+                document.getElementById('ratio').innerText = powerRatio;
+            } catch (err) {
+                showToast("服务器连接异常");
+                console.error(err);
+            }
         }
 
         window.onload = async function() {
@@ -180,23 +191,28 @@
         }
 
         async function syncUserData() {
-            const res = await fetch("/api/data");
-            const json = await res.json();
-            let allData = {};
             try {
-                allData = JSON.parse(json.data);
-            } catch(e) {
-                allData = { users: [] };
+                const res = await fetch("/api/data");
+                const json = await res.json();
+                let allData = {};
+                try {
+                    allData = JSON.parse(json.data);
+                } catch(e) {
+                    allData = { users: [] };
+                }
+                const idx = allData.users.findIndex(u => u.phone === currUser.phone);
+                if(idx > -1) {
+                    allData.users[idx] = currUser;
+                }
+                await fetch("/api/data", {
+                    method: "POST",
+                    headers: { "Content-Type":"application/json" },
+                    body: JSON.stringify({ data: JSON.stringify(allData) })
+                });
+            } catch (err) {
+                showToast("同步订单失败，请稍后查看");
+                console.error(err);
             }
-            const idx = allData.users.findIndex(u => u.phone === currUser.phone);
-            if(idx > -1) {
-                allData.users[idx] = currUser;
-            }
-            await fetch("/api/data", {
-                method: "POST",
-                headers: { "Content-Type":"application/json" },
-                body: JSON.stringify({ data: JSON.stringify(allData) })
-            });
         }
     </script>
 </body>
