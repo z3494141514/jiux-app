@@ -1,39 +1,41 @@
 export default async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const KEY = "app_data";
-
-  // 完整初始化数据结构
   const initData = {
-    // 全局配置
     config: {
-      powerRatio: 2,        // 购买赠送算力倍数
-      releaseHour: 8,       // 每日算力释放小时
-      releaseRate: 0.05,    // 每日算力释放比例
-      assetToBeanRate: 5    // 数字资产转酒豆比例
+      powerRatio: 2,
+      releaseHour: 8,
+      releaseRate: 0.05,
+      assetToBeanRate: 5
     },
-    users: [],               // 会员列表
-    releaseLog: [],          // 算力释放日志
-    rechargeLog: [],         // 后台充值酒令记录
-    withdrawLog: []          // 提现申请+审核记录
+    users: [],
+    releaseLog: [],
+    rechargeLog: [],
+    withdrawLog: []
   };
 
-  // GET 获取全部数据
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json"
+  };
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   if (request.method === "GET") {
     let data = await env.KV.get(KEY);
     if (!data) data = JSON.stringify(initData);
-    return new Response(JSON.stringify({ data }), {
-      headers: { "Content-Type": "application/json" }
-    });
+    return new Response(JSON.stringify({ data }), { headers: corsHeaders });
   }
 
-  // POST 保存全部数据
   if (request.method === "POST") {
     const body = await request.json();
     await env.KV.put(KEY, body.data);
-    return new Response(JSON.stringify({ code: 0, msg: "success" }), {
-      headers: { "Content-Type": "application/json" }
-    });
+    return new Response(JSON.stringify({ code: 0, msg: "success" }), { headers: corsHeaders });
   }
 
-  return new Response("Method Not Allowed", { status: 405 });
+  return new Response(JSON.stringify({ msg: "Method Not Allowed" }), { status: 405, headers: corsHeaders });
 }
