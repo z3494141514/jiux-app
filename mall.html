@@ -385,17 +385,17 @@
         }
 
         function startMarketPage() {
-            // 第一步：立即用模拟数据填充并绘图，保证立刻看到走势图
+            // 1. 立即生成模拟数据并绘制，保证走势图可见
             generateMockData();
             setTimeout(() => {
-                initChart();
+                initChart();  // 仅初次初始化画布尺寸
                 drawChart();
             }, 100);
 
-            // 第二步：异步获取真实数据，成功后替换
+            // 2. 异步获取真实数据，成功后直接绘图，不重置画布
             fetchArtPrice();
 
-            // 第三步：启动定时器，每30秒获取一次真实数据
+            // 3. 每30秒更新真实数据
             if (artInterval) clearInterval(artInterval);
             artInterval = setInterval(fetchArtPrice, 30000);
         }
@@ -424,13 +424,13 @@
                     document.getElementById('liquidity').innerText = formatVolume(d.liquidity);
                     document.getElementById('fdv').innerText = formatVolume(d.fdv);
 
-                    // 用真实数据更新 priceHistory
                     priceHistory.push(price);
                     if (priceHistory.length > 30) priceHistory.shift();
-                    initChart();
+                    // 注意：不调用 initChart()，直接重绘，避免画布被意外清空
+                    drawChart();
                 }
             } catch (err) {
-                console.error('真实数据获取失败，保留模拟数据', err);
+                console.error('真实数据获取失败', err);
             }
         }
 
@@ -439,7 +439,6 @@
             const changeEl = document.getElementById('artChangeLabel');
             changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
             changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
-            // 成交量等在 fetchArtPrice 中单独更新
         }
 
         function formatVolume(vol) {
@@ -454,9 +453,11 @@
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             const wrapper = canvas.parentNode;
-            canvas.width = wrapper.clientWidth || 300;
+            const w = wrapper.clientWidth || 300;
+            if (w === 0) return; // 防止设置为0
+            canvas.width = w;
             canvas.height = 220;
-            if (priceHistory.length >= 2) drawChart();
+            // 不在此处自动绘制，由调用方决定
         }
 
         function drawChart() {
