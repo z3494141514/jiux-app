@@ -1,67 +1,317 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>酒蕴茶乡运营系统 </title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 20px; }
-    #status { color: #666; margin-bottom: 20px; }
-    #dataBox { border: 1px solid #ccc; padding: 15px; min-height: 150px; background: #f9f9f9; white-space: pre-wrap; }
-    button { padding: 8px 16px; margin-right: 10px; cursor: pointer; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>酒蕴茶乡 - 精品烟酒茶商城</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #f9f3e8, #fff);
+            min-height: 100vh;
+        }
+        /* 顶部品牌栏 */
+        .header {
+            background: #8c1c13;
+            padding: 20px 16px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(140, 28, 19, 0.25);
+        }
+        .brand-name {
+            font-size: 28px;
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 4px;
+        }
+        .brand-desc {
+            color: #e6d2b0;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+        /* 主体容器 */
+        .main-wrap {
+            padding: 30px 20px;
+        }
+        /* 登录注册卡片 */
+        .login-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        /* Tab 切换栏 */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid #f0e9df;
+        }
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            line-height: 50px;
+            font-size: 16px;
+            color: #666;
+            cursor: pointer;
+            position: relative;
+        }
+        .tab-item.active {
+            color: #8c1c13;
+            font-weight: 500;
+        }
+        .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: #8c1c13;
+            border-radius: 2px;
+        }
+        /* 表单区域 */
+        .form-box {
+            padding: 25px 20px;
+        }
+        .form-panel {
+            display: none;
+        }
+        .form-panel.show {
+            display: block;
+        }
+        .input-item {
+            margin-bottom: 18px;
+        }
+        .input-item input {
+            width: 100%;
+            height: 48px;
+            padding: 0 16px;
+            border: 1px solid #e5ddd0;
+            border-radius: 10px;
+            font-size: 15px;
+            background: #fefaf5;
+            transition: border 0.3s;
+        }
+        .input-item input:focus {
+            outline: none;
+            border-color: #8c1c13;
+        }
+        .tip-text {
+            font-size: 12px;
+            color: #999;
+            margin: 4px 0 0 4px;
+        }
+        /* 按钮 */
+        .submit-btn {
+            width: 100%;
+            height: 48px;
+            background: #8c1c13;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .submit-btn:active {
+            background: #70160f;
+        }
+        /* 提示弹窗 */
+        .toast {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            z-index: 999;
+        }
+    </style>
 </head>
 <body>
-  <h1>酒蕴茶乡运营系统</h1>
-  <div id="status">正在加载数据...</div>
-  <div id="dataBox"></div>
-  <br>
-  <button onclick="loadData()">刷新数据</button>
-  <button onclick="saveTestData()">写入测试数据</button>
+    <!-- 顶部品牌 -->
+    <div class="header">
+        <div class="brand-name">酒蕴茶乡</div>
+        <div class="brand-desc">甄选好酒 · 茗品茶香</div>
+    </div>
 
-  <script>
-    const API_URL = "/api/data";
-    const statusEl = document.getElementById("status");
-    const dataBoxEl = document.getElementById("dataBox");
+    <div class="main-wrap">
+        <div class="login-card">
+            <!-- 切换标签 -->
+            <div class="tab-bar">
+                <div class="tab-item active" data-tab="login">账号登录</div>
+                <div class="tab-item" data-tab="register">新用户注册</div>
+            </div>
 
-    // 读取数据
-    async function loadData() {
-      statusEl.textContent = "加载中...";
-      try {
-        const res = await fetch(API_URL);
-        const json = await res.json();
-        const data = JSON.parse(json.data || "{}");
-        dataBoxEl.textContent = JSON.stringify(data, null, 2);
-        statusEl.textContent = "数据加载成功";
-      } catch (e) {
-        statusEl.textContent = "加载失败：" + e.message;
-        console.error(e);
-      }
-    }
+            <!-- 表单容器 -->
+            <div class="form-box">
+                <!-- 登录面板 -->
+                <div class="form-panel show" id="loginPanel">
+                    <div class="input-item">
+                        <input type="text" id="loginAccount" placeholder="请输入11位手机号">
+                    </div>
+                    <div class="input-item">
+                        <input type="password" id="loginPwd" placeholder="请输入登录密码">
+                    </div>
+                    <button class="submit-btn" onclick="doLogin()">立即登录</button>
+                </div>
 
-    // 写入测试数据
-    async function saveTestData() {
-      statusEl.textContent = "保存中...";
-      const testData = {
-        会员列表: ["张三", "李四", "王五"],
-        活动状态: "进行中",
-        最后更新: new Date().toLocaleString()
-      };
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: JSON.stringify(testData) })
+                <!-- 注册面板 -->
+                <div class="form-panel" id="registerPanel">
+                    <div class="input-item">
+                        <input type="text" id="regPhone" placeholder="请输入11位手机号码">
+                        <div class="tip-text">手机号将作为登录账号</div>
+                    </div>
+                    <div class="input-item">
+                        <input type="password" id="regPwd" placeholder="请设置登录密码">
+                    </div>
+                    <div class="input-item">
+                        <input type="text" id="inviteCode" placeholder="邀请码（选填）">
+                        <div class="tip-text">填写邀请码，自动绑定对应上级</div>
+                    </div>
+                    <button class="submit-btn" onclick="doRegister()">立即注册</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API = "/api/data";
+        // Tab 切换
+        const tabItems = document.querySelectorAll('.tab-item');
+        const panels = document.querySelectorAll('.form-panel');
+
+        tabItems.forEach(tab => {
+            tab.addEventListener('click', function(){
+                // 切换激活状态
+                tabItems.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                const target = this.dataset.tab;
+                // 切换面板
+                panels.forEach(p => p.classList.remove('show'));
+                if(target === 'login'){
+                    document.getElementById('loginPanel').classList.add('show');
+                }else{
+                    document.getElementById('registerPanel').classList.add('show');
+                }
+            })
         });
-        statusEl.textContent = "测试数据已保存，刷新查看";
-        loadData();
-      } catch (e) {
-        statusEl.textContent = "保存失败：" + e.message;
-        console.error(e);
-      }
-    }
 
-    // 页面加载时自动读取
-    loadData();
-  </script>
+        // 提示框
+        function showToast(text){
+            const toast = document.getElementById('toast');
+            toast.innerText = text;
+            toast.style.display = 'block';
+            setTimeout(()=>{
+                toast.style.display = 'none';
+            }, 2000);
+        }
+
+        // 读取本地账号数据
+        async function getUserData(){
+            let res = await fetch(API);
+            let json = await res.json();
+            return JSON.parse(json.data || '{"users":[]}');
+        }
+
+        // 保存账号数据
+        async function saveUserData(data){
+            await fetch(API,{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({data:JSON.stringify(data)})
+            })
+        }
+
+        // 登录逻辑
+        async function doLogin(){
+            let account = document.getElementById('loginAccount').value.trim();
+            let pwd = document.getElementById('loginPwd').value.trim();
+
+            if(!account){
+                showToast('请输入手机号');
+                return;
+            }
+            if(!/^1\d{10}$/.test(account)){
+                showToast('请输入正确的11位手机号');
+                return;
+            }
+            if(!pwd){
+                showToast('请输入密码');
+                return;
+            }
+
+            let userData = await getUserData();
+            let user = userData.users.find(item => item.phone === account && item.pwd === pwd);
+            if(user){
+                showToast('登录成功！');
+                // 登录成功后可跳转商城主页，此处自行扩展
+                setTimeout(()=>{
+                    location.reload();
+                },1500);
+            }else{
+                showToast('账号或密码错误');
+            }
+        }
+
+        // 注册逻辑 + 邀请码绑定上下级
+        async function doRegister(){
+            let phone = document.getElementById('regPhone').value.trim();
+            let pwd = document.getElementById('regPwd').value.trim();
+            let invite = document.getElementById('inviteCode').value.trim();
+
+            // 手机号校验 11位数字
+            if(!/^1\d{10}$/.test(phone)){
+                showToast('请输入合法的11位手机号');
+                return;
+            }
+            if(pwd.length < 6){
+                showToast('密码长度至少6位');
+                return;
+            }
+
+            let userData = await getUserData();
+            // 判断账号是否已注册
+            let exist = userData.users.some(item => item.phone === phone);
+            if(exist){
+                showToast('该手机号已注册');
+                return;
+            }
+
+            // 查找上级邀请人
+            let parentUser = null;
+            if(invite){
+                parentUser = userData.users.find(item => item.phone === invite);
+            }
+
+            // 组装新用户信息
+            let newUser = {
+                phone: phone,
+                pwd: pwd,
+                inviteCode: invite || '',
+                parentPhone: parentUser ? parentUser.phone : '',
+                createTime: new Date().toLocaleString()
+            };
+            userData.users.push(newUser);
+            await saveUserData(userData);
+
+            showToast('注册成功，请登录');
+            // 自动切到登录页
+            tabItems[0].click();
+        }
+    </script>
 </body>
 </html>
