@@ -222,6 +222,7 @@
 <body>
     <div class="header"><div class="logo">酒蕴茶乡</div><input class="search-box" placeholder="搜索好物..."></div>
 
+    <!-- 首页 -->
     <div class="page active" id="homePage">
         <div class="banner"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
         <div class="assurance">
@@ -235,6 +236,7 @@
         <div class="goods-list" id="goodsContainer"></div>
     </div>
 
+    <!-- 行情页 -->
     <div class="page" id="cartPage">
         <div class="market-bg">
             <div class="price-hero">
@@ -259,6 +261,7 @@
         </div>
     </div>
 
+    <!-- 会员中心 -->
     <div class="page" id="memberPage">
         <div class="member-header">
             <img class="avatar" src="https://picsum.photos/120/120?avatar">
@@ -332,9 +335,13 @@
         let allWithdrawData = [];
         let showingAll = false;
 
+        // 图片 blob 缓存
+        const blobCache = new Map();
+
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
 
+        // 导航切换
         document.querySelectorAll('.footer-item').forEach(item => {
             item.addEventListener('click', function () {
                 document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
@@ -355,6 +362,7 @@
             })
         });
 
+        // 加载行情
         async function loadArtPrice() {
             try {
                 const res = await fetch('/api/art-price');
@@ -384,6 +392,23 @@
             return v.toFixed(2);
         }
 
+        // 将图片 URL 转换为 blob URL（处理七牛云 attachment 问题）
+        async function getDisplayUrl(url) {
+            if (!url) return '';
+            if (url.startsWith('data:')) return url; // base64 直接返回
+            if (blobCache.has(url)) return blobCache.get(url);
+            try {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                blobCache.set(url, blobUrl);
+                return blobUrl;
+            } catch (e) {
+                return url; // 失败则回退到原始 URL
+            }
+        }
+
+        // 商品加载（增加 blob 转换）
         async function loadGoods(){
             const container = document.getElementById('goodsContainer');
             container.innerHTML = '<p style="text-align:center;padding:30px;color:#999;">商品加载中...</p>';
@@ -391,15 +416,16 @@
                 const res = await fetch(`${API}/goods-list`);
                 const data = await res.json();
                 const list = data.list || [];
-                let html='';
+                let html = '';
                 if (list.length === 0) {
                     html = '<p style="text-align:center;padding:30px;">暂无商品</p>';
                 } else {
-                    list.forEach(g=>{
+                    for (const g of list) {
                         const stock = g.stock || 0;
                         const sales = g.sales || 0;
+                        const displayUrl = await getDisplayUrl(g.image_url);
                         html += `<div class="goods-item" onclick="location.href='pay.html?gid=${g.id}&price=${g.price}'">
-                            <img src="${g.image_url}" alt="${g.name}" loading="lazy">
+                            <img src="${displayUrl}" alt="${g.name}" loading="lazy">
                             <div class="goods-info">
                                 <div class="goods-name">${g.name}</div>
                                 <div class="goods-price">¥ ${g.price}</div>
@@ -407,7 +433,7 @@
                             </div>
                             <button class="buy-btn" onclick="event.stopPropagation(); location.href='pay.html?gid=${g.id}&price=${g.price}'">立即购买</button>
                         </div>`;
-                    });
+                    }
                 }
                 container.innerHTML = html;
             } catch (e) {
