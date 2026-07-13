@@ -352,6 +352,7 @@
         let allWithdrawData = [];
         let showingAll = false;
         let priceHistory = [];
+        let artInterval = null;
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
@@ -365,23 +366,40 @@
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 if (page === 'home') {
                     document.getElementById('homePage').classList.add('active');
+                    stopMarketTimer();
                 } else if (page === 'cart') {
                     document.getElementById('cartPage').classList.add('active');
-                    // 先用模拟数据保证走势图立即出现
-                    generateMockData();
-                    setTimeout(() => { initChart(); drawChart(); }, 100);
-                    // 然后异步请求真实数据
-                    loadRealData();
+                    startMarketPage();
                 } else if (page === 'member') {
                     document.getElementById('memberPage').classList.add('active');
                     loadMemberData();
                     loadOrders('wait');
+                    stopMarketTimer();
                 }
                 window.scrollTo(0, 0);
             })
         });
 
-        // 生成模拟数据（你验证可用的版本）
+        function stopMarketTimer() {
+            if (artInterval) { clearInterval(artInterval); artInterval = null; }
+        }
+
+        function startMarketPage() {
+            // 第一步：立即用模拟数据填充并绘图，保证立刻看到走势图
+            generateMockData();
+            setTimeout(() => {
+                initChart();
+                drawChart();
+            }, 100);
+
+            // 第二步：异步获取真实数据，成功后替换
+            fetchArtPrice();
+
+            // 第三步：启动定时器，每30秒获取一次真实数据
+            if (artInterval) clearInterval(artInterval);
+            artInterval = setInterval(fetchArtPrice, 30000);
+        }
+
         function generateMockData() {
             const basePrice = 0.00012 + Math.random() * 0.00005;
             priceHistory = [];
@@ -389,19 +407,10 @@
                 const noise = (Math.random() - 0.5) * 0.00001;
                 priceHistory.push(basePrice + noise);
             }
-            const latest = priceHistory[priceHistory.length - 1];
-            document.getElementById('artPrice').innerText = '$' + latest.toFixed(6);
-            const change = ((latest - priceHistory[0]) / priceHistory[0] * 100);
-            const changeEl = document.getElementById('artChangeLabel');
-            changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-            changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
-            document.getElementById('volume').innerText = '$' + (Math.random() * 5000 + 1000).toFixed(0);
-            document.getElementById('liquidity').innerText = '$' + (Math.random() * 50000 + 10000).toFixed(0);
-            document.getElementById('fdv').innerText = '$' + (Math.random() * 200000 + 50000).toFixed(0);
+            updatePriceDisplay(priceHistory[priceHistory.length - 1], 0);
         }
 
-        // 异步请求真实数据
-        async function loadRealData() {
+        async function fetchArtPrice() {
             try {
                 const res = await fetch('/api/art-price');
                 const json = await res.json();
@@ -410,23 +419,27 @@
                     const price = parseFloat(d.price);
                     if (isNaN(price)) return;
 
-                    document.getElementById('artPrice').innerText = '$' + price.toFixed(6);
-                    const change = parseFloat(d.change24h);
-                    const changeEl = document.getElementById('artChangeLabel');
-                    changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-                    changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
+                    updatePriceDisplay(price, parseFloat(d.change24h));
                     document.getElementById('volume').innerText = formatVolume(d.volume24h);
                     document.getElementById('liquidity').innerText = formatVolume(d.liquidity);
                     document.getElementById('fdv').innerText = formatVolume(d.fdv);
 
-                    // 替换为真实数据
+                    // 用真实数据更新 priceHistory
                     priceHistory.push(price);
                     if (priceHistory.length > 30) priceHistory.shift();
                     initChart();
                 }
             } catch (err) {
-                console.error('真实数据加载失败，保留模拟数据', err);
+                console.error('真实数据获取失败，保留模拟数据', err);
             }
+        }
+
+        function updatePriceDisplay(price, change) {
+            document.getElementById('artPrice').innerText = '$' + price.toFixed(6);
+            const changeEl = document.getElementById('artChangeLabel');
+            changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+            changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
+            // 成交量等在 fetchArtPrice 中单独更新
         }
 
         function formatVolume(vol) {
@@ -443,6 +456,7 @@
             const wrapper = canvas.parentNode;
             canvas.width = wrapper.clientWidth || 300;
             canvas.height = 220;
+            if (priceHistory.length >= 2) drawChart();
         }
 
         function drawChart() {
@@ -451,6 +465,7 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width;
             const h = canvas.height;
+            if (w === 0 || h === 0) return;
             ctx.clearRect(0, 0, w, h);
 
             const min = Math.min(...priceHistory);
@@ -458,14 +473,14 @@
             const range = max - min || 1;
             const padding = 20;
 
+            const getX = (i) => (i / (priceHistory.length - 1)) * w;
+            const getY = (price) => h - ((price - min) / range) * (h - padding * 2) - padding;
+
             const gradient = ctx.createLinearGradient(0, 0, 0, h);
             gradient.addColorStop(0, 'rgba(201,161,94,0.35)');
             gradient.addColorStop(1, 'rgba(201,161,94,0)');
 
             ctx.beginPath();
-            const getX = (i) => (i / (priceHistory.length - 1)) * w;
-            const getY = (price) => h - ((price - min) / range) * (h - padding * 2) - padding;
-
             ctx.moveTo(getX(0), getY(priceHistory[0]));
             for (let i = 1; i < priceHistory.length; i++) {
                 ctx.lineTo(getX(i), getY(priceHistory[i]));
@@ -474,8 +489,8 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            ctx.lineTo(w, h);
-            ctx.lineTo(0, h);
+            ctx.lineTo(getX(priceHistory.length - 1), h);
+            ctx.lineTo(getX(0), h);
             ctx.closePath();
             ctx.fillStyle = gradient;
             ctx.fill();
