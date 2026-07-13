@@ -74,6 +74,11 @@
             padding:30px 20px; display:flex; align-items:center;
         }
         .avatar { width:70px; height:70px; border-radius:50%; border:2px solid var(--gold); margin-right:18px; }
+        .member-info { display:flex; flex-direction:column; gap:6px; }
+        .member-phone { font-size:18px; font-weight:600; }
+        .member-invite-row { display:flex; align-items:center; gap:8px; font-size:13px; opacity:0.9; }
+        .copy-btn { background:none; border:none; color:#fff; cursor:pointer; font-size:14px; padding:2px 6px; }
+        .level-badge { display:inline-block; background: var(--gold); color:#fff; padding:2px 10px; border-radius:20px; font-size:12px; font-weight:600; }
         .asset-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:16px; }
         .asset-item {
             background:var(--card-bg); border-radius:16px; padding:16px; box-shadow:var(--shadow);
@@ -121,6 +126,7 @@
             background:var(--primary); color:#fff; border:none; border-radius:8px;
             padding:4px 12px; font-size:13px; align-self:flex-start;
         }
+        .withdraw-item { cursor:pointer; }
         .footer {
             position:fixed; bottom:0; left:0; width:100%;
             background:rgba(255,255,255,0.9); backdrop-filter:blur(20px);
@@ -148,21 +154,28 @@
 </head>
 <body>
     <div class="header"><div class="logo">酒蕴茶乡</div><input class="search-box" placeholder="搜索好物..."></div>
+
     <!-- 首页 -->
     <div class="page active" id="homePage">
         <div class="banner"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
         <div class="section-title"><div class="line"></div><h3>甄选好物</h3></div>
         <div class="goods-grid" id="goodsGrid"></div>
     </div>
+
     <!-- 购物车 -->
     <div class="page" id="cartPage"><div style="text-align:center; padding:80px 20px; color:#ccc;">🛒<br>购物车空空如也</div></div>
+
     <!-- 会员中心 -->
     <div class="page" id="memberPage">
         <div class="member-header">
             <img class="avatar" src="https://picsum.photos/120/120?avatar">
-            <div>
-                <div style="font-size:18px; font-weight:600;" id="memberPhone">--</div>
-                <div style="opacity:0.7; font-size:13px; margin-top:4px;">邀请码：<span id="memberInvite">--</span></div>
+            <div class="member-info">
+                <div class="member-phone" id="memberPhone">--</div>
+                <div class="member-invite-row">
+                    邀请码：<span id="memberInvite">--</span>
+                    <button class="copy-btn" onclick="copyInvite()" title="复制邀请码">📋</button>
+                </div>
+                <div><span class="level-badge" id="memberLevel">普通会员</span></div>
             </div>
         </div>
         <div class="asset-cards">
@@ -192,13 +205,15 @@
             <button style="flex:1; background:#f5f5f5; border:none; border-radius:14px; padding:14px; font-size:16px; font-weight:600;" onclick="logout()">退出登录</button>
         </div>
     </div>
+
     <!-- 底部导航 -->
     <div class="footer">
         <div class="footer-item active" data-page="home"><div>🏠</div><span>首页</span></div>
         <div class="footer-item" data-page="cart"><div>🛒</div><span>购物车</span></div>
         <div class="footer-item" data-page="member"><div>👤</div><span>我的</span></div>
     </div>
-    <!-- 提现弹窗 -->
+
+    <!-- 弹窗：提现 -->
     <div class="mask" id="mask"></div>
     <div class="pop" id="withdrawPop">
         <h4 style="text-align:center; margin-bottom:18px;">酒豆提现</h4>
@@ -209,6 +224,8 @@
             <button class="btn-submit" onclick="submitWithdraw()">提交</button>
         </div>
     </div>
+
+    <!-- 弹窗：修改密码 -->
     <div class="pop" id="pwdPop">
         <h4 style="text-align:center; margin-bottom:18px;">修改密码</h4>
         <input type="password" id="oldPwd" placeholder="旧密码">
@@ -218,6 +235,16 @@
             <button class="btn-submit" onclick="changePwd()">确认</button>
         </div>
     </div>
+
+    <!-- 弹窗：提现详情 -->
+    <div class="pop" id="withdrawDetailPop">
+        <h4 style="text-align:center; margin-bottom:18px;">提现详情</h4>
+        <div id="withdrawDetailContent" style="line-height:2; font-size:14px;"></div>
+        <div class="btn-group">
+            <button class="btn-cancel" onclick="closePop()">关闭</button>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -240,7 +267,7 @@
             })
         });
 
-        // 商品加载（支持 base64）
+        // 商品加载
         async function loadGoods(){
             const res = await fetch(`${API}/goods-list`);
             const data = await res.json();
@@ -258,19 +285,34 @@
             document.getElementById('goodsGrid').innerHTML=html||'<p style="text-align:center;padding:30px;">暂无商品</p>';
         }
 
+        // 复制邀请码
+        function copyInvite() {
+            const code = document.getElementById('memberInvite').innerText;
+            navigator.clipboard.writeText(code).then(() => showToast('复制成功'));
+        }
+
         // 会员数据
         async function loadMemberData(){
             const user = JSON.parse(localStorage.getItem('loginUser')||'{}');
             if(!user.phone) return;
-            document.getElementById('memberPhone').innerText=user.phone;
-            document.getElementById('memberInvite').innerText=user.invite_code||user.phone;
-            document.getElementById('powerVal').innerText=user.power||0;
-            document.getElementById('assetVal').innerText=user.asset||'0.00';
-            document.getElementById('beanVal').innerText=user.bean||0;
-            document.getElementById('tokenVal').innerText=user.token||0;
+            // 从服务端刷新用户信息（包含等级名称）
+            const res = await fetch(`${API}/user?phone=${user.phone}`);
+            const data = await res.json();
+            if(data.code === 0) {
+                const u = data.user;
+                localStorage.setItem('loginUser', JSON.stringify(u));
+                document.getElementById('memberPhone').innerText = u.phone;
+                document.getElementById('memberInvite').innerText = u.invite_code || u.phone;
+                document.getElementById('memberLevel').innerText = u.levelName || '普通会员';
+                document.getElementById('powerVal').innerText = u.power || 0;
+                document.getElementById('assetVal').innerText = u.asset || '0.00';
+                document.getElementById('beanVal').innerText = u.bean || 0;
+                document.getElementById('tokenVal').innerText = u.token || 0;
+            }
             loadWithdrawLog();
         }
 
+        // 订单列表
         async function loadOrders(status){
             curOrderStatus = status;
             document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
@@ -284,7 +326,7 @@
             else orders.forEach(o=>{
                 const statusMap = {wait:'待发货', send:'已发货', done:'已收货'};
                 html+=`<div class="order-item">
-                    <div class="info-row"><span class="label">商品编号</span><span class="value">${o.goods_id}</span></div>
+                    <div class="info-row"><span class="label">商品</span><span class="value">${o.goods_name || o.goods_id}</span></div>
                     <div class="info-row"><span class="label">金额</span><span class="value">¥${o.price}</span></div>
                     <div class="info-row"><span class="label">时间</span><span class="value" style="font-size:13px;">${o.create_time}</span></div>
                     <div class="info-row">
@@ -308,6 +350,7 @@
             loadOrders(curOrderStatus);
         }
 
+        // 提现
         function openWithdraw(){
             document.getElementById('mask').classList.add('active');
             document.getElementById('withdrawPop').classList.add('active');
@@ -325,6 +368,7 @@
             loadMemberData();
         }
 
+        // 提现记录（可点击查看详情）
         async function loadWithdrawLog(){
             const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
             const res=await fetch(`${API}/user-withdraws?phone=${user.phone}`);
@@ -334,9 +378,8 @@
             if(list.length===0) html='<div class="order-empty">暂无记录</div>';
             else list.forEach(item=>{
                 const statusMap={wait:'待审核',pass:'已通过',refuse:'已拒绝'};
-                html+=`<div class="withdraw-item">
-                    <div class="info-row"><span class="label">提现数量</span><span class="value">${item.bean_num} 酒豆</span></div>
-                    <div class="info-row"><span class="label">地址</span><span class="value" style="font-size:13px;">${item.address||'未填写'}</span></div>
+                html+=`<div class="withdraw-item" onclick='showWithdrawDetail(${JSON.stringify(item).replace(/'/g, "&#39;")})'>
+                    <div class="info-row"><span class="label">数量</span><span class="value">${item.bean_num} 酒豆</span></div>
                     <div class="info-row"><span class="label">时间</span><span class="value" style="font-size:13px;">${item.apply_time}</span></div>
                     <div class="info-row">
                         <span class="label">状态</span>
@@ -347,6 +390,19 @@
             document.getElementById('withdrawList').innerHTML=html;
         }
 
+        function showWithdrawDetail(item) {
+            const statusMap = {wait:'待审核',pass:'已通过',refuse:'已拒绝'};
+            document.getElementById('withdrawDetailContent').innerHTML = `
+                <p><b>提现数量：</b>${item.bean_num} 酒豆</p>
+                <p><b>提现地址：</b>${item.address || '未填写'}</p>
+                <p><b>申请时间：</b>${item.apply_time}</p>
+                <p><b>状态：</b>${statusMap[item.status]}</p>
+            `;
+            document.getElementById('mask').classList.add('active');
+            document.getElementById('withdrawDetailPop').classList.add('active');
+        }
+
+        // 密码修改
         function openPwdPop(){
             document.getElementById('mask').classList.add('active');
             document.getElementById('pwdPop').classList.add('active');
@@ -362,6 +418,7 @@
             closePop();
         }
 
+        // 资产转酒豆
         async function assetToBean(){
             const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
             const res=await fetch(`${API}/asset-to-bean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone})});
@@ -369,13 +426,16 @@
             showToast(data.msg||'兑换完成');
             if(data.code===0) { await refreshLocalUser(); loadMemberData(); }
         }
+
         async function refreshLocalUser(){
             const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
             const res=await fetch(`${API}/user?phone=${user.phone}`);
             const data=await res.json();
             if(data.code===0) localStorage.setItem('loginUser',JSON.stringify(data.user));
         }
+
         function logout(){ localStorage.removeItem('loginUser'); location.href='index.html'; }
+
         window.onload=async function(){
             if(!localStorage.getItem('loginUser')) return location.href='index.html';
             loadGoods();
