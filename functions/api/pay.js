@@ -1,7 +1,9 @@
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
-  const { phone, goodsId, price } = await request.json();
-  if (!phone || !goodsId || !price) return new Response(JSON.stringify({ code: 1, msg: '参数不全' }), { status: 400 });
+  const { phone, goodsId, price, address } = await request.json();
+  if (!phone || !goodsId || !price || !address) {
+    return new Response(JSON.stringify({ code: 1, msg: '参数不全，请填写收货地址' }), { status: 400 });
+  }
 
   const goods = await env.DB.prepare("SELECT required_level, upgrade_level FROM goods WHERE id = ?").bind(goodsId).first();
   if (!goods) return new Response(JSON.stringify({ code: 1, msg: '商品不存在' }), { status: 400 });
@@ -24,8 +26,9 @@ export async function onRequest({ request, env }) {
   const statements = [
     env.DB.prepare("UPDATE users SET token = token - ?, power = power + ? WHERE phone = ? AND token >= ?")
       .bind(price, addPower, phone, price),
-    env.DB.prepare("INSERT INTO orders (phone, goods_id, price) VALUES (?, ?, ?)")
-      .bind(phone, goodsId, price)
+    // 插入订单时包含地址
+    env.DB.prepare("INSERT INTO orders (phone, goods_id, price, address) VALUES (?, ?, ?, ?)")
+      .bind(phone, goodsId, price, address)
   ];
 
   if (goods.upgrade_level > buyer.level) {
