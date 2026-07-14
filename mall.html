@@ -342,36 +342,17 @@
         let hasMore = true;
         let isLoading = false;
 
-        // 工具函数：读取 Cookie
-        function getCookie(name) {
-            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-            return match ? decodeURIComponent(match[2]) : null;
-        }
-
-        // 从 localStorage 或 Cookie 中安全获取用户对象
+        // 直接从 localStorage 获取用户对象（无过期、无 Cookie）
         function getLoginUser() {
             try {
                 const raw = localStorage.getItem('loginUser');
-                if (raw) {
-                    const data = JSON.parse(raw);
-                    if (data.user) return data.user;
-                    return data;
-                }
-                // 如果 localStorage 中没有，尝试从 Cookie 恢复
-                const cookieVal = getCookie('loginUser');
-                if (cookieVal) {
-                    const cookieData = JSON.parse(cookieVal);
-                    if (!cookieData.expireAt || Date.now() < cookieData.expireAt) {
-                        // 恢复到 localStorage，并刷新 Cookie
-                        localStorage.setItem('loginUser', JSON.stringify(cookieData));
-                        document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(cookieData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-                        return cookieData.user || cookieData;
-                    } else {
-                        document.cookie = 'loginUser=; path=/; max-age=0';
-                    }
-                }
-            } catch (e) {}
-            return null;
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                // 兼容可能存在的旧格式，但不再处理过期时间
+                return data.user || data;
+            } catch (e) {
+                return null;
+            }
         }
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
@@ -400,11 +381,7 @@
             })
         });
 
-        function resetGoods() {
-            currentPage = 1;
-            hasMore = true;
-            document.getElementById('goodsContainer').innerHTML = '';
-        }
+        function resetGoods() { currentPage = 1; hasMore = true; document.getElementById('goodsContainer').innerHTML = ''; }
 
         async function loadGoods(reset = false) {
             if (isLoading || !hasMore) return;
@@ -414,19 +391,11 @@
                 container.innerHTML = `
                     <div class="goods-item" style="opacity:0.4; pointer-events:none;">
                         <div style="width:80px;height:80px;background:#e0e0e0;border-radius:12px;"></div>
-                        <div class="goods-info">
-                            <div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:70%;"></div>
-                            <div style="height:20px;background:#e0e0e0;border-radius:4px;width:40%;margin-bottom:6px;"></div>
-                            <div style="height:14px;background:#e0e0e0;border-radius:4px;width:50%;"></div>
-                        </div>
+                        <div class="goods-info"><div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:70%;"></div><div style="height:20px;background:#e0e0e0;border-radius:4px;width:40%;margin-bottom:6px;"></div><div style="height:14px;background:#e0e0e0;border-radius:4px;width:50%;"></div></div>
                     </div>
                     <div class="goods-item" style="opacity:0.4; pointer-events:none;">
                         <div style="width:80px;height:80px;background:#e0e0e0;border-radius:12px;"></div>
-                        <div class="goods-info">
-                            <div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:60%;"></div>
-                            <div style="height:20px;background:#e0e0e0;border-radius:4px;width:35%;margin-bottom:6px;"></div>
-                            <div style="height:14px;background:#e0e0e0;border-radius:4px;width:45%;"></div>
-                        </div>
+                        <div class="goods-info"><div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:60%;"></div><div style="height:20px;background:#e0e0e0;border-radius:4px;width:35%;margin-bottom:6px;"></div><div style="height:14px;background:#e0e0e0;border-radius:4px;width:45%;"></div></div>
                     </div>
                 `;
             } else {
@@ -459,7 +428,6 @@
                     container.innerHTML = html;
                     currentPage++;
                 }
-
                 document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
             } catch (e) {
                 if (currentPage === 1) container.innerHTML = '<p style="text-align:center;padding:30px;">加载失败，请重试</p>';
@@ -469,7 +437,6 @@
 
         function loadMoreGoods() { loadGoods(false); }
 
-        // 行情
         async function loadArtPrice() {
             try {
                 const res = await fetch('/api/art-price');
@@ -487,13 +454,7 @@
             } catch (err) { console.error('行情获取失败', err); }
         }
 
-        function formatVolume(vol) {
-            const v = parseFloat(vol);
-            if (isNaN(v)) return '--';
-            if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M';
-            if (v >= 1000) return (v / 1000).toFixed(2) + 'K';
-            return v.toFixed(2);
-        }
+        function formatVolume(vol) { const v = parseFloat(vol); if (isNaN(v)) return '--'; if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M'; if (v >= 1000) return (v / 1000).toFixed(2) + 'K'; return v.toFixed(2); }
 
         function copyInvite(){ navigator.clipboard.writeText(document.getElementById('memberInvite').innerText).then(()=>showToast('复制成功')); }
 
@@ -504,15 +465,13 @@
             const data = await res.json();
             if(data.code===0){
                 const u = data.user;
-                // 更新存储中的用户信息
+                // 更新 localStorage 中的用户信息
                 const raw = localStorage.getItem('loginUser');
                 if (raw) {
                     try {
                         const parsed = JSON.parse(raw);
                         parsed.user = u;
                         localStorage.setItem('loginUser', JSON.stringify(parsed));
-                        // 同步更新 Cookie
-                        document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
                     } catch(e) {}
                 }
                 document.getElementById('memberPhone').innerText = u.phone;
@@ -539,7 +498,8 @@
             if (orders.length === 0) html = '<div class="order-empty">暂无订单</div>';
             else orders.forEach(o => {
                 const statusMap = { wait: '待发货', send: '已发货', done: '已收货' };
-                let displayTime = o.create_time || '未知时间';
+                // 直接显示北京时间字符串，不再转换
+                const displayTime = o.create_time || '未知时间';
                 html += `<div class="order-item">
                     <div class="info-row"><span class="label">商品</span><span class="value">${o.goods_name || o.goods_id}</span></div>
                     <div class="info-row"><span class="label">金额</span><span class="value">¥${o.price}</span></div>
@@ -601,12 +561,8 @@
             });
             document.getElementById('withdrawList').innerHTML = html;
             const viewAllBtn = document.getElementById('viewAllWithdraws');
-            if (allWithdrawData.length > 5) {
-                viewAllBtn.style.display = 'block';
-                viewAllBtn.textContent = showingAll ? '收起' : '查看全部记录';
-            } else {
-                viewAllBtn.style.display = 'none';
-            }
+            if (allWithdrawData.length > 5) { viewAllBtn.style.display = 'block'; viewAllBtn.textContent = showingAll ? '收起' : '查看全部记录'; }
+            else viewAllBtn.style.display = 'none';
         }
 
         window.showAllWithdraws = function() { showingAll = !showingAll; renderWithdrawList(); };
@@ -654,64 +610,22 @@
                 const u = data.user;
                 const raw = localStorage.getItem('loginUser');
                 if (raw) {
-                    try {
-                        const parsed = JSON.parse(raw);
-                        parsed.user = u;
-                        localStorage.setItem('loginUser', JSON.stringify(parsed));
-                        document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-                    } catch(e) {}
+                    try { const parsed = JSON.parse(raw); parsed.user = u; localStorage.setItem('loginUser', JSON.stringify(parsed)); } catch(e) {}
                 }
             }
         }
 
         function logout(){
             localStorage.removeItem('loginUser');
-            document.cookie = 'loginUser=; path=/; max-age=0';
             location.href = 'index.html';
         }
 
-        // 页面启动时校验登录状态（支持 Cookie 恢复）
+        // 页面启动，简单检查 localStorage 是否存在
         window.onload = async function () {
-            const loginStr = localStorage.getItem('loginUser');
-            let loginData = null;
-
-            // 尝试从 localStorage 恢复
-            if (loginStr) {
-                try {
-                    loginData = JSON.parse(loginStr);
-                } catch (e) { loginData = null; }
-            }
-
-            // 如果 localStorage 中没有或过期，尝试从 Cookie 恢复
-            if (!loginData || (loginData.expireAt && Date.now() > loginData.expireAt)) {
-                const cookieVal = getCookie('loginUser');
-                if (cookieVal) {
-                    try {
-                        loginData = JSON.parse(cookieVal);
-                        if (!loginData.expireAt || Date.now() < loginData.expireAt) {
-                            // 恢复到 localStorage，并刷新 Cookie
-                            localStorage.setItem('loginUser', JSON.stringify(loginData));
-                            document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(loginData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-                        } else {
-                            document.cookie = 'loginUser=; path=/; max-age=0';
-                            loginData = null;
-                        }
-                    } catch (e) { loginData = null; }
-                }
-            }
-
-            if (!loginData) {
+            if (!getLoginUser()) {
                 location.href = 'index.html';
                 return;
             }
-
-            // 确保格式统一（旧格式兼容）
-            if (!loginData.user) {
-                loginData = { user: loginData, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
-                localStorage.setItem('loginUser', JSON.stringify(loginData));
-                document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(loginData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-            }
-
             loadGoods(true);
             try { await fetch(`${API}/release`); } catch (e) {}
         };

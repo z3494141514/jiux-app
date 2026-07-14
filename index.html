@@ -227,15 +227,8 @@
             });
             const data = await res.json();
             if(data.code === 0){
-                // 存储包含过期时间的对象（7天）
-                const loginData = {
-                    user: data.user,
-                    expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000
-                };
-                localStorage.setItem('loginUser', JSON.stringify(loginData));
-// 新增：写入 Cookie 作为备份（7天过期）
-    const cookieValue = encodeURIComponent(JSON.stringify(loginData));
-    document.cookie = `loginUser=${cookieValue}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+                // 直接保存用户对象，无过期时间
+                localStorage.setItem('loginUser', JSON.stringify(data.user));
                 showToast('登录成功');
                 setTimeout(()=> location.href='mall.html', 1000);
             } else showToast(data.msg || '登录失败');
