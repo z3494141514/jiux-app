@@ -337,25 +337,41 @@
         let curOrderStatus = 'wait';
         let allWithdrawData = [];
         let showingAll = false;
-        // 分页变量
         let currentPage = 1;
         const limit = 2;
         let hasMore = true;
         let isLoading = false;
 
-        // 从新的存储格式中安全获取用户对象
+        // 工具函数：读取 Cookie
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : null;
+        }
+
+        // 从 localStorage 或 Cookie 中安全获取用户对象
         function getLoginUser() {
             try {
                 const raw = localStorage.getItem('loginUser');
-                if (!raw) return null;
-                const data = JSON.parse(raw);
-                // 新格式：{ user, expireAt }
-                if (data.user) return data.user;
-                // 旧格式：直接是用户对象
-                return data;
-            } catch (e) {
-                return null;
-            }
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    if (data.user) return data.user;
+                    return data;
+                }
+                // 如果 localStorage 中没有，尝试从 Cookie 恢复
+                const cookieVal = getCookie('loginUser');
+                if (cookieVal) {
+                    const cookieData = JSON.parse(cookieVal);
+                    if (!cookieData.expireAt || Date.now() < cookieData.expireAt) {
+                        // 恢复到 localStorage，并刷新 Cookie
+                        localStorage.setItem('loginUser', JSON.stringify(cookieData));
+                        document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(cookieData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+                        return cookieData.user || cookieData;
+                    } else {
+                        document.cookie = 'loginUser=; path=/; max-age=0';
+                    }
+                }
+            } catch (e) {}
+            return null;
         }
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
@@ -390,7 +406,6 @@
             document.getElementById('goodsContainer').innerHTML = '';
         }
 
-        // 加载商品（分页+骨架屏）
         async function loadGoods(reset = false) {
             if (isLoading || !hasMore) return;
             isLoading = true;
@@ -489,13 +504,15 @@
             const data = await res.json();
             if(data.code===0){
                 const u = data.user;
-                // 更新存储中的用户信息（保留过期时间）
+                // 更新存储中的用户信息
                 const raw = localStorage.getItem('loginUser');
                 if (raw) {
                     try {
                         const parsed = JSON.parse(raw);
                         parsed.user = u;
                         localStorage.setItem('loginUser', JSON.stringify(parsed));
+                        // 同步更新 Cookie
+                        document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
                     } catch(e) {}
                 }
                 document.getElementById('memberPhone').innerText = u.phone;
@@ -509,7 +526,6 @@
             loadWithdrawLog();
         }
 
-        // 订单
         async function loadOrders(status){
             curOrderStatus = status;
             document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
@@ -546,7 +562,6 @@
             loadOrders(curOrderStatus);
         }
 
-        // 提现
         function openWithdraw(){ document.getElementById('mask').classList.add('active'); document.getElementById('withdrawPop').classList.add('active'); }
         async function submitWithdraw(){
             const user = getLoginUser();
@@ -644,6 +659,7 @@
                         const parsed = JSON.parse(raw);
                         parsed.user = u;
                         localStorage.setItem('loginUser', JSON.stringify(parsed));
+                        document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
                     } catch(e) {}
                 }
             }
@@ -651,30 +667,52 @@
 
         function logout(){
             localStorage.removeItem('loginUser');
+            document.cookie = 'loginUser=; path=/; max-age=0';
             location.href = 'index.html';
         }
 
-        // 页面启动时校验登录状态
+        // 页面启动时校验登录状态（支持 Cookie 恢复）
         window.onload = async function () {
             const loginStr = localStorage.getItem('loginUser');
-            if (!loginStr) { location.href = 'index.html'; return; }
-            try {
-                const loginData = JSON.parse(loginStr);
-                // 兼容旧格式：没有 expireAt 的直接视为有效，并升级为新格式
-                if (loginData.expireAt && Date.now() > loginData.expireAt) {
-                    localStorage.removeItem('loginUser');
-                    location.href = 'index.html';
-                    return;
+            let loginData = null;
+
+            // 尝试从 localStorage 恢复
+            if (loginStr) {
+                try {
+                    loginData = JSON.parse(loginStr);
+                } catch (e) { loginData = null; }
+            }
+
+            // 如果 localStorage 中没有或过期，尝试从 Cookie 恢复
+            if (!loginData || (loginData.expireAt && Date.now() > loginData.expireAt)) {
+                const cookieVal = getCookie('loginUser');
+                if (cookieVal) {
+                    try {
+                        loginData = JSON.parse(cookieVal);
+                        if (!loginData.expireAt || Date.now() < loginData.expireAt) {
+                            // 恢复到 localStorage，并刷新 Cookie
+                            localStorage.setItem('loginUser', JSON.stringify(loginData));
+                            document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(loginData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+                        } else {
+                            document.cookie = 'loginUser=; path=/; max-age=0';
+                            loginData = null;
+                        }
+                    } catch (e) { loginData = null; }
                 }
-                if (!loginData.user) {
-                    // 旧格式，自动升级
-                    const newData = { user: loginData, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
-                    localStorage.setItem('loginUser', JSON.stringify(newData));
-                }
-            } catch (e) {
+            }
+
+            if (!loginData) {
                 location.href = 'index.html';
                 return;
             }
+
+            // 确保格式统一（旧格式兼容）
+            if (!loginData.user) {
+                loginData = { user: loginData, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+                localStorage.setItem('loginUser', JSON.stringify(loginData));
+                document.cookie = `loginUser=${encodeURIComponent(JSON.stringify(loginData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            }
+
             loadGoods(true);
             try { await fetch(`${API}/release`); } catch (e) {}
         };
