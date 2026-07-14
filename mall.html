@@ -339,9 +339,24 @@
         let showingAll = false;
         // 分页变量
         let currentPage = 1;
-        const limit = 2;   // 首屏加载2个商品，加快速度
+        const limit = 2;
         let hasMore = true;
         let isLoading = false;
+
+        // 从新的存储格式中安全获取用户对象
+        function getLoginUser() {
+            try {
+                const raw = localStorage.getItem('loginUser');
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                // 新格式：{ user, expireAt }
+                if (data.user) return data.user;
+                // 旧格式：直接是用户对象
+                return data;
+            } catch (e) {
+                return null;
+            }
+        }
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
@@ -369,20 +384,18 @@
             })
         });
 
-        // 重置分页状态
         function resetGoods() {
             currentPage = 1;
             hasMore = true;
             document.getElementById('goodsContainer').innerHTML = '';
         }
 
-        // 加载商品（分页版 + 骨架屏）
+        // 加载商品（分页+骨架屏）
         async function loadGoods(reset = false) {
             if (isLoading || !hasMore) return;
             isLoading = true;
             const container = document.getElementById('goodsContainer');
             if (reset) {
-                // 骨架屏
                 container.innerHTML = `
                     <div class="goods-item" style="opacity:0.4; pointer-events:none;">
                         <div style="width:80px;height:80px;background:#e0e0e0;border-radius:12px;"></div>
@@ -434,9 +447,7 @@
 
                 document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
             } catch (e) {
-                if (currentPage === 1) {
-                    container.innerHTML = '<p style="text-align:center;padding:30px;">加载失败，请重试</p>';
-                }
+                if (currentPage === 1) container.innerHTML = '<p style="text-align:center;padding:30px;">加载失败，请重试</p>';
             }
             isLoading = false;
         }
@@ -469,101 +480,112 @@
             return v.toFixed(2);
         }
 
-        // 会员
         function copyInvite(){ navigator.clipboard.writeText(document.getElementById('memberInvite').innerText).then(()=>showToast('复制成功')); }
 
         async function loadMemberData(){
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
-            if(!user.phone) return;
+            const user = getLoginUser();
+            if(!user || !user.phone) return;
             const res = await fetch(`${API}/user?phone=${user.phone}`);
             const data = await res.json();
             if(data.code===0){
-                const u=data.user;
-                localStorage.setItem('loginUser',JSON.stringify(u));
-                document.getElementById('memberPhone').innerText=u.phone;
-                document.getElementById('memberInvite').innerText=u.invite_code||'--';
-                document.getElementById('memberLevel').innerText=u.levelName||'普通会员';
-                document.getElementById('powerVal').innerText=u.power||0;
-                document.getElementById('assetVal').innerText=u.asset||'0.00';
-                document.getElementById('beanVal').innerText=u.bean||0;
-                document.getElementById('tokenVal').innerText=u.token||0;
+                const u = data.user;
+                // 更新存储中的用户信息（保留过期时间）
+                const raw = localStorage.getItem('loginUser');
+                if (raw) {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        parsed.user = u;
+                        localStorage.setItem('loginUser', JSON.stringify(parsed));
+                    } catch(e) {}
+                }
+                document.getElementById('memberPhone').innerText = u.phone;
+                document.getElementById('memberInvite').innerText = u.invite_code || '--';
+                document.getElementById('memberLevel').innerText = u.levelName || '普通会员';
+                document.getElementById('powerVal').innerText = u.power || 0;
+                document.getElementById('assetVal').innerText = u.asset || '0.00';
+                document.getElementById('beanVal').innerText = u.bean || 0;
+                document.getElementById('tokenVal').innerText = u.token || 0;
             }
             loadWithdrawLog();
         }
 
         // 订单
         async function loadOrders(status){
-            curOrderStatus=status;
+            curOrderStatus = status;
             document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
             document.querySelector(`.order-tab-item[data-status="${status}"]`).classList.add('active');
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const user = getLoginUser();
+            if (!user || !user.phone) return;
             const res = await fetch(`${API}/user-orders?phone=${user.phone}`);
             const data = await res.json();
-            const orders=(data.orders||[]).filter(o=>o.status===status);
-            let html='';
-            if(orders.length===0) html='<div class="order-empty">暂无订单</div>';
-            else orders.forEach(o=>{
-                const statusMap={wait:'待发货',send:'已发货',done:'已收货'};
+            const orders = (data.orders || []).filter(o => o.status === status);
+            let html = '';
+            if (orders.length === 0) html = '<div class="order-empty">暂无订单</div>';
+            else orders.forEach(o => {
+                const statusMap = { wait: '待发货', send: '已发货', done: '已收货' };
                 let displayTime = '';
                 try { displayTime = new Date(o.create_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }); } catch(e) { displayTime = o.create_time; }
-                html+=`<div class="order-item">
-                    <div class="info-row"><span class="label">商品</span><span class="value">${o.goods_name||o.goods_id}</span></div>
+                html += `<div class="order-item">
+                    <div class="info-row"><span class="label">商品</span><span class="value">${o.goods_name || o.goods_id}</span></div>
                     <div class="info-row"><span class="label">金额</span><span class="value">¥${o.price}</span></div>
                     <div class="info-row"><span class="label">时间</span><span class="value" style="font-size:13px;">${displayTime}</span></div>
                     <div class="info-row"><span class="label">状态</span><span class="status-badge status-${o.status}">${statusMap[o.status]}</span></div>
-                    ${o.status==='send'?`<button class="confirm-btn" onclick="confirmOrder(${o.id})">确认收货</button>`:''}
+                    ${o.status === 'send' ? `<button class="confirm-btn" onclick="confirmOrder(${o.id})">确认收货</button>` : ''}
                 </div>`;
             });
-            document.getElementById('orderList').innerHTML=html;
+            document.getElementById('orderList').innerHTML = html;
         }
-        document.querySelectorAll('.order-tab-item').forEach(item=>item.addEventListener('click',()=>loadOrders(item.dataset.status)));
+        document.querySelectorAll('.order-tab-item').forEach(item => item.addEventListener('click', () => loadOrders(item.dataset.status)));
 
         async function confirmOrder(id){
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
-            const res=await fetch(`${API}/confirm-order`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone,orderId:id})});
-            const data=await res.json();
-            showToast(data.msg||'操作成功');
+            const user = getLoginUser();
+            if (!user) return;
+            const res = await fetch(`${API}/confirm-order`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone, orderId: id }) });
+            const data = await res.json();
+            showToast(data.msg || '操作成功');
             loadOrders(curOrderStatus);
         }
 
         // 提现
         function openWithdraw(){ document.getElementById('mask').classList.add('active'); document.getElementById('withdrawPop').classList.add('active'); }
         async function submitWithdraw(){
-            const num=parseInt(document.getElementById('withdrawNum').value);
-            const addr=document.getElementById('withdrawAddr').value.trim();
-            if(!num||num<=0) return showToast('请输入数量');
-            if(!addr) return showToast('请输入地址');
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
-            const res=await fetch(`${API}/withdraw`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone,beanNum:num,address:addr})});
-            const data=await res.json();
-            showToast(data.msg||'提交失败');
+            const user = getLoginUser();
+            if (!user) return;
+            const num = parseInt(document.getElementById('withdrawNum').value);
+            const addr = document.getElementById('withdrawAddr').value.trim();
+            if (!num || num <= 0) return showToast('请输入数量');
+            if (!addr) return showToast('请输入地址');
+            const res = await fetch(`${API}/withdraw`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone, beanNum: num, address: addr }) });
+            const data = await res.json();
+            showToast(data.msg || '提交失败');
             closePop();
             loadMemberData();
         }
 
         async function loadWithdrawLog(){
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
-            const res=await fetch(`${API}/user-withdraws?phone=${user.phone}`);
-            const data=await res.json();
+            const user = getLoginUser();
+            if (!user || !user.phone) return;
+            const res = await fetch(`${API}/user-withdraws?phone=${user.phone}`);
+            const data = await res.json();
             allWithdrawData = data.list || [];
             showingAll = false;
             renderWithdrawList();
         }
 
         function renderWithdrawList(){
-            const list = showingAll ? allWithdrawData : allWithdrawData.slice(0,5);
-            let html='';
-            if(list.length===0) html='<div class="order-empty">暂无记录</div>';
-            else list.forEach(item=>{
-                const statusMap={wait:'待审核',pass:'已通过',refuse:'已拒绝'};
-                html+=`<div class="withdraw-item">
+            const list = showingAll ? allWithdrawData : allWithdrawData.slice(0, 5);
+            let html = '';
+            if (list.length === 0) html = '<div class="order-empty">暂无记录</div>';
+            else list.forEach(item => {
+                const statusMap = { wait: '待审核', pass: '已通过', refuse: '已拒绝' };
+                html += `<div class="withdraw-item">
                     <div class="info-row"><span class="label">数量</span><span class="value">${item.bean_num} 酒豆</span></div>
                     <div class="info-row"><span class="label">时间</span><span class="value" style="font-size:13px;">${item.apply_time}</span></div>
                     <div class="info-row"><span class="label">状态</span><span class="status-badge status-${item.status}">${statusMap[item.status]}</span></div>
                     <button class="detail-btn" onclick='showWithdrawDetail(${JSON.stringify(item).replace(/'/g, "&#39;")})'>详情</button>
                 </div>`;
             });
-            document.getElementById('withdrawList').innerHTML=html;
+            document.getElementById('withdrawList').innerHTML = html;
             const viewAllBtn = document.getElementById('viewAllWithdraws');
             if (allWithdrawData.length > 5) {
                 viewAllBtn.style.display = 'block';
@@ -576,8 +598,8 @@
         window.showAllWithdraws = function() { showingAll = !showingAll; renderWithdrawList(); };
 
         function showWithdrawDetail(item){
-            const statusMap={wait:'待审核',pass:'已通过',refuse:'已拒绝'};
-            document.getElementById('withdrawDetailContent').innerHTML=`
+            const statusMap = { wait: '待审核', pass: '已通过', refuse: '已拒绝' };
+            document.getElementById('withdrawDetailContent').innerHTML = `
                 <p><b>数量：</b>${item.bean_num} 酒豆</p>
                 <p><b>地址：</b>${item.address || '未填写'}</p>
                 <p><b>时间：</b>${item.apply_time}</p>
@@ -589,38 +611,73 @@
 
         function openPwdPop(){ document.getElementById('mask').classList.add('active'); document.getElementById('pwdPop').classList.add('active'); }
         async function changePwd(){
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
-            const oldPwd=document.getElementById('oldPwd').value;
-            const newPwd=document.getElementById('newPwd').value;
-            if(!oldPwd||!newPwd||newPwd.length<6) return showToast('密码至少6位');
-            const res=await fetch(`${API}/change-pwd`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone,oldPwd,newPwd})});
-            const data=await res.json();
-            showToast(data.msg||'修改失败');
+            const user = getLoginUser();
+            if (!user) return;
+            const oldPwd = document.getElementById('oldPwd').value;
+            const newPwd = document.getElementById('newPwd').value;
+            if (!oldPwd || !newPwd || newPwd.length < 6) return showToast('密码至少6位');
+            const res = await fetch(`${API}/change-pwd`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone, oldPwd, newPwd }) });
+            const data = await res.json();
+            showToast(data.msg || '修改失败');
             closePop();
         }
 
         async function assetToBean(){
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
-            const res=await fetch(`${API}/asset-to-bean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone})});
-            const data=await res.json();
-            showToast(data.msg||'兑换完成');
-            if(data.code===0){ await refreshLocalUser(); loadMemberData(); }
+            const user = getLoginUser();
+            if (!user) return;
+            const res = await fetch(`${API}/asset-to-bean`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone }) });
+            const data = await res.json();
+            showToast(data.msg || '兑换完成');
+            if (data.code === 0) { await refreshLocalUser(); loadMemberData(); }
         }
 
         async function refreshLocalUser(){
-            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
-            const res=await fetch(`${API}/user?phone=${user.phone}`);
-            const data=await res.json();
-            if(data.code===0) localStorage.setItem('loginUser',JSON.stringify(data.user));
+            const user = getLoginUser();
+            if (!user || !user.phone) return;
+            const res = await fetch(`${API}/user?phone=${user.phone}`);
+            const data = await res.json();
+            if (data.code === 0) {
+                const u = data.user;
+                const raw = localStorage.getItem('loginUser');
+                if (raw) {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        parsed.user = u;
+                        localStorage.setItem('loginUser', JSON.stringify(parsed));
+                    } catch(e) {}
+                }
+            }
         }
 
-        function logout(){ localStorage.removeItem('loginUser'); location.href='index.html'; }
+        function logout(){
+            localStorage.removeItem('loginUser');
+            location.href = 'index.html';
+        }
 
-        window.onload=async function(){
-            if(!localStorage.getItem('loginUser')) return location.href='index.html';
+        // 页面启动时校验登录状态
+        window.onload = async function () {
+            const loginStr = localStorage.getItem('loginUser');
+            if (!loginStr) { location.href = 'index.html'; return; }
+            try {
+                const loginData = JSON.parse(loginStr);
+                // 兼容旧格式：没有 expireAt 的直接视为有效，并升级为新格式
+                if (loginData.expireAt && Date.now() > loginData.expireAt) {
+                    localStorage.removeItem('loginUser');
+                    location.href = 'index.html';
+                    return;
+                }
+                if (!loginData.user) {
+                    // 旧格式，自动升级
+                    const newData = { user: loginData, expireAt: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+                    localStorage.setItem('loginUser', JSON.stringify(newData));
+                }
+            } catch (e) {
+                location.href = 'index.html';
+                return;
+            }
             loadGoods(true);
-            try{ await fetch(`${API}/release`); }catch(e){}
-        }
+            try { await fetch(`${API}/release`); } catch (e) {}
+        };
     </script>
 </body>
 </html>

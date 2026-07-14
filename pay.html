@@ -192,7 +192,8 @@
 
             let userStr = localStorage.getItem('loginUser');
             if(!userStr) { location.href='index.html'; return; }
-            currUser = JSON.parse(userStr);
+            const loginData = JSON.parse(localStorage.getItem('loginUser') || '{}');
+currUser = loginData.user || loginData;
 
             // 获取商品详情
             const goodsRes = await fetch(`${API}/goods-detail?id=${goodsId}`);
