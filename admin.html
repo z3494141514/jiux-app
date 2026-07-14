@@ -48,6 +48,10 @@
         th { background: #fafafa; font-weight: 600; color: #555; }
         .tip { color: #999; font-size: 13px; margin: 8px 0 16px; }
         .flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; }
+        .pagination button { padding: 6px 16px; background: #eee; border-radius: 6px; font-size: 13px; }
+        .pagination span { font-size: 14px; color: #666; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -113,7 +117,7 @@
             </div>
         </div>
 
-        <!-- 商品管理（含 Banner 和图片方式切换） -->
+        <!-- 商品管理（含 Banner 和图片方式） -->
         <div class="panel" id="panel-goods">
             <div class="card"><h3>商品管理</h3>
                 <input type="hidden" id="editId">
@@ -166,7 +170,7 @@
                         <label>赠送算力倍数</label>
                         <input type="number" id="goodsPowerRatio" step="0.1" placeholder="留空则使用全局设置">
                     </div>
-                    <!-- 新增Banner选项 -->
+                    <!-- Banner选项 -->
                     <div class="form-item">
                         <label>设为Banner</label>
                         <select id="goodsIsBanner">
@@ -184,12 +188,20 @@
             </div>
         </div>
 
-        <!-- 会员充值 -->
+        <!-- 会员充值（支持选择类型） -->
         <div class="panel" id="panel-users">
-            <div class="card"><h3>会员列表 & 酒令充值</h3>
+            <div class="card"><h3>会员列表 & 充值</h3>
                 <div class="flex-row">
                     <div style="flex:1; min-width:200px;"><label>选择会员</label><select id="userSelect"></select></div>
-                    <div style="flex:1; min-width:150px;"><label>充值数量</label><input type="number" id="rechargeNum" min="1" value="100"></div>
+                    <div style="flex:1; min-width:120px;"><label>充值数量</label><input type="number" id="rechargeNum" min="1" value="100"></div>
+                    <div style="flex:1; min-width:120px;">
+                        <label>充值类型</label>
+                        <select id="rechargeType">
+                            <option value="token">酒令</option>
+                            <option value="power">算力</option>
+                            <option value="bean">酒豆</option>
+                        </select>
+                    </div>
                     <button class="btn-primary" style="margin-top:22px;" onclick="userRecharge()">确认充值</button>
                 </div>
                 <table style="margin-top:20px;"><thead><tr><th>手机号</th><th>总算力</th><th>数字资产</th><th>酒豆</th><th>酒令</th><th>等级</th><th>注册时间</th></tr></thead><tbody id="userTable"></tbody></table>
@@ -213,24 +225,50 @@
             </div>
         </div>
 
-        <!-- 订单管理 -->
+        <!-- 订单管理（筛选+分页，每页20条） -->
         <div class="panel" id="panel-orders">
             <div class="card"><h3>全部订单 & 状态修改</h3>
-                <table><thead><tr><th>订单ID</th><th>会员</th><th>商品名称</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr></thead><tbody id="orderTable"></tbody></table>
+                <div class="flex-row" style="margin-bottom:12px;">
+                    <label>筛选状态：</label>
+                    <select id="orderStatusFilter" onchange="filterOrders()">
+                        <option value="all">全部</option>
+                        <option value="wait">待发货</option>
+                        <option value="send">已发货</option>
+                        <option value="done">已收货</option>
+                    </select>
+                </div>
+                <table>
+                    <thead><tr><th>订单ID</th><th>会员</th><th>商品名称</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr></thead>
+                    <tbody id="orderTable"></tbody>
+                </table>
+                <div class="pagination" id="orderPagination"></div>
             </div>
         </div>
 
-        <!-- 提现审核 -->
+        <!-- 提现审核（筛选+分页，每页20条） -->
         <div class="panel" id="panel-withdraw">
             <div class="card"><h3>用户酒豆提现审核</h3>
-                <table><thead><tr><th>ID</th><th>会员</th><th>数量</th><th>提现地址</th><th>申请时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="withdrawTable"></tbody></table>
+                <div class="flex-row" style="margin-bottom:12px;">
+                    <label>筛选状态：</label>
+                    <select id="withdrawStatusFilter" onchange="filterWithdraws()">
+                        <option value="all">全部</option>
+                        <option value="wait">待审核</option>
+                        <option value="pass">已通过</option>
+                        <option value="refuse">已拒绝</option>
+                    </select>
+                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>会员</th><th>数量</th><th>提现地址</th><th>申请时间</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="withdrawTable"></tbody>
+                </table>
+                <div class="pagination" id="withdrawPagination"></div>
             </div>
         </div>
 
         <!-- 充值记录 -->
         <div class="panel" id="panel-rechargeLog">
-            <div class="card"><h3>后台酒令充值记录</h3>
-                <table><thead><tr><th>会员</th><th>充值数量</th><th>时间</th></tr></thead><tbody id="rechargeLogTable"></tbody></table>
+            <div class="card"><h3>后台充值记录</h3>
+                <table><thead><tr><th>会员</th><th>充值数量</th><th>类型</th><th>时间</th></tr></thead><tbody id="rechargeLogTable"></tbody></table>
             </div>
         </div>
 
@@ -244,9 +282,19 @@
 
     <script>
         const API = '/api';
-        const ADMIN_KEY = 'jycx'; // 务必改为你的实际密钥
+        const ADMIN_KEY = 'jycx'; // 务必修改为你的实际密钥
 
         let allUsers = [], allOrders = [], allWithdraws = [], allRecharges = [], allReleases = [];
+
+        // 订单分页
+        let orderFilter = 'all';
+        let orderPage = 1;
+        const orderPageSize = 20;
+
+        // 提现分页
+        let withdrawFilter = 'all';
+        let withdrawPage = 1;
+        const withdrawPageSize = 20;
 
         // 导航切换
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -291,6 +339,10 @@
                 loadLevelOptions();
                 loadUsers();
                 renderUser();
+                renderOrder();
+                renderWithdraw();
+                renderRechargeLog();
+                renderReleaseLog();
             } catch (e) { alert('数据加载失败: ' + e.message); }
         }
 
@@ -400,7 +452,7 @@
             loadLevelOptions();
         }
 
-        // 加载等级下拉选项（用于商品管理）
+        // 加载等级下拉选项
         async function loadLevelOptions() {
             const res = await fetch(`${API}/levels`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
             const data = await res.json();
@@ -423,7 +475,7 @@
             });
         }
 
-        // ---------- 商品管理（含 Banner 和图片方式） ----------
+        // ---------- 商品管理 ----------
         function toggleImageMode() {
             const mode = document.getElementById('imageMode').value;
             document.getElementById('urlInputGroup').style.display = mode === 'url' ? 'block' : 'none';
@@ -600,11 +652,12 @@
         async function userRecharge() {
             const phone = document.getElementById('userSelect').value;
             const amount = parseInt(document.getElementById('rechargeNum').value);
+            const type = document.getElementById('rechargeType').value;
             if (!amount || amount <= 0) return showMsg('请输入有效数量');
             const res = await fetch(`${API}/recharge`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
-                body: JSON.stringify({ phone, amount })
+                body: JSON.stringify({ phone, amount, type })
             });
             const data = await res.json();
             showMsg(data.msg || '充值完成');
@@ -641,11 +694,19 @@
             loadAllData();
         }
 
-        // ---------- 订单管理 ----------
+        // ---------- 订单管理（筛选+分页） ----------
         function renderOrder() {
+            let filtered = allOrders;
+            if (orderFilter !== 'all') {
+                filtered = allOrders.filter(o => o.status === orderFilter);
+            }
+            const totalPages = Math.ceil(filtered.length / orderPageSize);
+            const start = (orderPage - 1) * orderPageSize;
+            const pageOrders = filtered.slice(start, start + orderPageSize);
+
             let html = '';
-            if (allOrders.length === 0) html = '<tr><td colspan="7">暂无订单</td></tr>';
-            else allOrders.forEach(o => {
+            if (pageOrders.length === 0) html = '<tr><td colspan="7">暂无订单</td></tr>';
+            else pageOrders.forEach(o => {
                 const statusMap = { wait: '待发货', send: '已发货', done: '已收货' };
                 html += `<tr>
                     <td>${o.id}</td><td>${o.phone}</td><td>${o.goods_name || o.goods_id}</td><td>${o.price}</td>
@@ -661,6 +722,24 @@
                 </tr>`;
             });
             document.getElementById('orderTable').innerHTML = html;
+
+            const pagDiv = document.getElementById('orderPagination');
+            pagDiv.innerHTML = `
+                <button ${orderPage<=1?'disabled':''} onclick="goOrderPage(${orderPage-1})">上一页</button>
+                <span>第 ${orderPage} / ${totalPages||1} 页</span>
+                <button ${orderPage>=totalPages?'disabled':''} onclick="goOrderPage(${orderPage+1})">下一页</button>
+            `;
+        }
+
+        function filterOrders() {
+            orderFilter = document.getElementById('orderStatusFilter').value;
+            orderPage = 1;
+            renderOrder();
+        }
+
+        function goOrderPage(p) {
+            orderPage = p;
+            renderOrder();
         }
 
         async function changeOrderStatus(orderId, newStatus) {
@@ -673,11 +752,19 @@
             loadAllData();
         }
 
-        // ---------- 提现审核 ----------
+        // ---------- 提现审核（筛选+分页） ----------
         function renderWithdraw() {
+            let filtered = allWithdraws;
+            if (withdrawFilter !== 'all') {
+                filtered = allWithdraws.filter(w => w.status === withdrawFilter);
+            }
+            const totalPages = Math.ceil(filtered.length / withdrawPageSize);
+            const start = (withdrawPage - 1) * withdrawPageSize;
+            const pageItems = filtered.slice(start, start + withdrawPageSize);
+
             let html = '';
-            if (allWithdraws.length === 0) html = '<tr><td colspan="7">暂无提现申请</td></tr>';
-            else allWithdraws.forEach(w => {
+            if (pageItems.length === 0) html = '<tr><td colspan="7">暂无提现申请</td></tr>';
+            else pageItems.forEach(w => {
                 const statusMap = { wait: '待审核', pass: '已通过', refuse: '已拒绝' };
                 html += `<tr>
                     <td>${w.id}</td><td>${w.phone}</td><td>${w.bean_num}</td><td>${w.address || '未填写'}</td>
@@ -691,6 +778,24 @@
                 </tr>`;
             });
             document.getElementById('withdrawTable').innerHTML = html;
+
+            const pagDiv = document.getElementById('withdrawPagination');
+            pagDiv.innerHTML = `
+                <button ${withdrawPage<=1?'disabled':''} onclick="goWithdrawPage(${withdrawPage-1})">上一页</button>
+                <span>第 ${withdrawPage} / ${totalPages||1} 页</span>
+                <button ${withdrawPage>=totalPages?'disabled':''} onclick="goWithdrawPage(${withdrawPage+1})">下一页</button>
+            `;
+        }
+
+        function filterWithdraws() {
+            withdrawFilter = document.getElementById('withdrawStatusFilter').value;
+            withdrawPage = 1;
+            renderWithdraw();
+        }
+
+        function goWithdrawPage(p) {
+            withdrawPage = p;
+            renderWithdraw();
         }
 
         async function auditWithdraw(withdrawId, action) {
@@ -707,8 +812,11 @@
         // ---------- 记录 ----------
         function renderRechargeLog() {
             let html = '';
-            if (allRecharges.length === 0) html = '<tr><td colspan="3">暂无记录</td></tr>';
-            else allRecharges.forEach(r => { html += `<tr><td>${r.phone}</td><td>${r.amount}</td><td>${r.create_time}</td></tr>`; });
+            if (allRecharges.length === 0) html = '<tr><td colspan="4">暂无记录</td></tr>';
+            else allRecharges.forEach(r => {
+                const typeMap = { token: '酒令', power: '算力', bean: '酒豆' };
+                html += `<tr><td>${r.phone}</td><td>${r.amount}</td><td>${typeMap[r.type] || r.type || '酒令'}</td><td>${r.create_time}</td></tr>`;
+            });
             document.getElementById('rechargeLogTable').innerHTML = html;
         }
 
@@ -719,6 +827,7 @@
             document.getElementById('releaseLogTable').innerHTML = html;
         }
 
+        // 初始化
         window.onload = loadAllData;
     </script>
 </body>
