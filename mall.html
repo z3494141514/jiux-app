@@ -255,7 +255,9 @@
                     <div>FDV <span id="fdv">--</span></div>
                 </div>
             </div>
-            <div class="disclaimer">数据及价格有延迟，可能存在误差，仅供参考！</div>
+            <div class="disclaimer">
+                数据及价格有延迟，可能存在误差，仅供参考！
+            </div>
             <div class="footer-market">数据来源 DexScreener（服务端代理）</div>
         </div>
     </div>
@@ -332,7 +334,7 @@
         let curOrderStatus = 'wait';
         let allWithdrawData = [];
         let showingAll = false;
-        // 分页变量
+        // 分页相关变量
         let currentPage = 1;
         const limit = 4;
         let hasMore = true;
@@ -341,7 +343,6 @@
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
 
-        // 导航切换
         document.querySelectorAll('.footer-item').forEach(item => {
             item.addEventListener('click', function () {
                 document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
@@ -350,8 +351,7 @@
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 if (page === 'home') {
                     document.getElementById('homePage').classList.add('active');
-                    // 每次切换到首页都重新加载第一页（可保留缓存效果）
-                    if (currentPage === 1 && hasMore === false) return; // 已经加载完无需重载
+                    // 切换回首页时，重置并加载第一页
                     resetGoods();
                     loadGoods(true);
                 } else if (page === 'cart') {
@@ -366,6 +366,35 @@
             })
         });
 
+        async function loadArtPrice() {
+            try {
+                const res = await fetch('/api/art-price');
+                const json = await res.json();
+                if (json.code === 0 && json.data) {
+                    const d = json.data;
+                    document.getElementById('artPrice').innerText = '$' + parseFloat(d.price).toFixed(6);
+                    const change = parseFloat(d.change24h);
+                    const changeEl = document.getElementById('artChangeLabel');
+                    changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                    changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
+                    document.getElementById('liquidity').innerText = d.liquidity ? '$' + formatVolume(d.liquidity) : '--';
+                    document.getElementById('fdv').innerText = d.fdv ? '$' + formatVolume(d.fdv) : '--';
+                } else {
+                    document.getElementById('artPrice').innerText = '--';
+                }
+            } catch (err) {
+                console.error('行情获取失败', err);
+            }
+        }
+
+        function formatVolume(vol) {
+            const v = parseFloat(vol);
+            if (isNaN(v)) return '--';
+            if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M';
+            if (v >= 1000) return (v / 1000).toFixed(2) + 'K';
+            return v.toFixed(2);
+        }
+
         // 重置分页状态
         function resetGoods() {
             currentPage = 1;
@@ -373,7 +402,7 @@
             document.getElementById('goodsContainer').innerHTML = '';
         }
 
-        // 加载商品（默认加载首页4个）
+        // 加载商品（分页版本）
         async function loadGoods(reset = false) {
             if (isLoading || !hasMore) return;
             isLoading = true;
@@ -394,7 +423,7 @@
                     container.innerHTML = '<p style="text-align:center;padding:30px;">暂无商品</p>';
                 } else {
                     let html = currentPage === 1 ? '' : container.innerHTML;
-                    list.forEach(g => {
+                    list.forEach(g=>{
                         const stock = g.stock || 0;
                         const sales = g.sales || 0;
                         html += `<div class="goods-item" onclick="location.href='pay.html?gid=${g.id}&price=${g.price}'">
@@ -411,7 +440,6 @@
                     currentPage++;
                 }
 
-                // 显示/隐藏“加载更多”按钮
                 document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
             } catch (e) {
                 container.innerHTML = '<p style="text-align:center;padding:30px;">加载失败，请重试</p>';
@@ -419,37 +447,9 @@
             isLoading = false;
         }
 
-        // 点击“加载更多”
+        // “加载更多”按钮
         function loadMoreGoods() {
             loadGoods(false);
-        }
-
-        // 行情页
-        async function loadArtPrice() {
-            try {
-                const res = await fetch('/api/art-price');
-                const json = await res.json();
-                if (json.code === 0 && json.data) {
-                    const d = json.data;
-                    document.getElementById('artPrice').innerText = '$' + parseFloat(d.price).toFixed(6);
-                    const change = parseFloat(d.change24h);
-                    const changeEl = document.getElementById('artChangeLabel');
-                    changeEl.innerText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-                    changeEl.className = 'change-badge ' + (change >= 0 ? 'up' : 'down');
-                    document.getElementById('liquidity').innerText = d.liquidity ? '$' + formatVolume(d.liquidity) : '--';
-                    document.getElementById('fdv').innerText = d.fdv ? '$' + formatVolume(d.fdv) : '--';
-                } else {
-                    document.getElementById('artPrice').innerText = '--';
-                }
-            } catch (err) { console.error('行情获取失败', err); }
-        }
-
-        function formatVolume(vol) {
-            const v = parseFloat(vol);
-            if (isNaN(v)) return '--';
-            if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M';
-            if (v >= 1000) return (v / 1000).toFixed(2) + 'K';
-            return v.toFixed(2);
         }
 
         function copyInvite(){ navigator.clipboard.writeText(document.getElementById('memberInvite').innerText).then(()=>showToast('复制成功')); }
@@ -486,7 +486,11 @@
             else orders.forEach(o=>{
                 const statusMap={wait:'待发货',send:'已发货',done:'已收货'};
                 let displayTime = '';
-                try { displayTime = new Date(o.create_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }); } catch(e) { displayTime = o.create_time; }
+                try {
+                    displayTime = new Date(o.create_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                } catch (e) {
+                    displayTime = o.create_time || '未知时间';
+                }
                 html+=`<div class="order-item">
                     <div class="info-row"><span class="label">商品</span><span class="value">${o.goods_name||o.goods_id}</span></div>
                     <div class="info-row"><span class="label">金额</span><span class="value">¥${o.price}</span></div>
@@ -521,15 +525,83 @@
             loadMemberData();
         }
 
-        async function loadWithdrawLog(){ /* 保持不变 */ }
-        function renderWithdrawList(){ /* 保持不变 */ }
-        window.showAllWithdraws = function() { /* 保持不变 */ };
-        function showWithdrawDetail(item){ /* 保持不变 */ }
-        function openPwdPop(){ /* 保持不变 */ }
-        async function changePwd(){ /* 保持不变 */ }
-        async function assetToBean(){ /* 保持不变 */ }
-        async function refreshLocalUser(){ /* 保持不变 */ }
-        function logout(){ /* 保持不变 */ }
+        async function loadWithdrawLog(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res=await fetch(`${API}/user-withdraws?phone=${user.phone}`);
+            const data=await res.json();
+            allWithdrawData = data.list || [];
+            showingAll = false;
+            renderWithdrawList();
+        }
+
+        function renderWithdrawList(){
+            const list = showingAll ? allWithdrawData : allWithdrawData.slice(0,5);
+            let html='';
+            if(list.length===0) html='<div class="order-empty">暂无记录</div>';
+            else list.forEach(item=>{
+                const statusMap={wait:'待审核',pass:'已通过',refuse:'已拒绝'};
+                html+=`<div class="withdraw-item">
+                    <div class="info-row"><span class="label">数量</span><span class="value">${item.bean_num} 酒豆</span></div>
+                    <div class="info-row"><span class="label">时间</span><span class="value" style="font-size:13px;">${item.apply_time}</span></div>
+                    <div class="info-row"><span class="label">状态</span><span class="status-badge status-${item.status}">${statusMap[item.status]}</span></div>
+                    <button class="detail-btn" onclick='showWithdrawDetail(${JSON.stringify(item).replace(/'/g, "&#39;")})'>详情</button>
+                </div>`;
+            });
+            document.getElementById('withdrawList').innerHTML=html;
+            const viewAllBtn = document.getElementById('viewAllWithdraws');
+            if (allWithdrawData.length > 5) {
+                viewAllBtn.style.display = 'block';
+                viewAllBtn.textContent = showingAll ? '收起' : '查看全部记录';
+            } else {
+                viewAllBtn.style.display = 'none';
+            }
+        }
+
+        window.showAllWithdraws = function() {
+            showingAll = !showingAll;
+            renderWithdrawList();
+        };
+
+        function showWithdrawDetail(item){
+            const statusMap={wait:'待审核',pass:'已通过',refuse:'已拒绝'};
+            document.getElementById('withdrawDetailContent').innerHTML=`
+                <p><b>数量：</b>${item.bean_num} 酒豆</p>
+                <p><b>地址：</b>${item.address || '未填写'}</p>
+                <p><b>时间：</b>${item.apply_time}</p>
+                <p><b>状态：</b>${statusMap[item.status]}</p>
+            `;
+            document.getElementById('mask').classList.add('active');
+            document.getElementById('withdrawDetailPop').classList.add('active');
+        }
+
+        function openPwdPop(){ document.getElementById('mask').classList.add('active'); document.getElementById('pwdPop').classList.add('active'); }
+        async function changePwd(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const oldPwd=document.getElementById('oldPwd').value;
+            const newPwd=document.getElementById('newPwd').value;
+            if(!oldPwd||!newPwd||newPwd.length<6) return showToast('密码至少6位');
+            const res=await fetch(`${API}/change-pwd`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone,oldPwd,newPwd})});
+            const data=await res.json();
+            showToast(data.msg||'修改失败');
+            closePop();
+        }
+
+        async function assetToBean(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res=await fetch(`${API}/asset-to-bean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:user.phone})});
+            const data=await res.json();
+            showToast(data.msg||'兑换完成');
+            if(data.code===0){ await refreshLocalUser(); loadMemberData(); }
+        }
+
+        async function refreshLocalUser(){
+            const user=JSON.parse(localStorage.getItem('loginUser')||'{}');
+            const res=await fetch(`${API}/user?phone=${user.phone}`);
+            const data=await res.json();
+            if(data.code===0) localStorage.setItem('loginUser',JSON.stringify(data.user));
+        }
+
+        function logout(){ localStorage.removeItem('loginUser'); location.href='index.html'; }
 
         window.onload=async function(){
             if(!localStorage.getItem('loginUser')) return location.href='index.html';
