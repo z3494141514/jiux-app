@@ -113,7 +113,7 @@
             </div>
         </div>
 
-        <!-- 商品管理（已增加Banner选项） -->
+        <!-- 商品管理（含 Banner 和图片方式切换） -->
         <div class="panel" id="panel-goods">
             <div class="card"><h3>商品管理</h3>
                 <input type="hidden" id="editId">
@@ -121,7 +121,7 @@
                     <div class="form-item"><label>商品名称</label><input type="text" id="goodsName"></div>
                     <div class="form-item"><label>价格(酒令/酒豆)</label><input type="number" id="goodsPrice"></div>
 
-                    <!-- 图片上传方式切换 -->
+                    <!-- 图片方式切换 -->
                     <div class="form-item">
                         <label>图片方式</label>
                         <select id="imageMode" onchange="toggleImageMode()">
@@ -423,7 +423,7 @@
             });
         }
 
-        // ---------- 商品管理（新增 Banner 相关逻辑） ----------
+        // ---------- 商品管理（含 Banner 和图片方式） ----------
         function toggleImageMode() {
             const mode = document.getElementById('imageMode').value;
             document.getElementById('urlInputGroup').style.display = mode === 'url' ? 'block' : 'none';
@@ -542,14 +542,8 @@
         async function saveGoods() {
             const id = document.getElementById('editId').value;
             const imageMode = document.getElementById('imageMode').value;
-            let image_url;
-            if (imageMode === 'url') {
-                image_url = document.getElementById('goodsImageUrl').value.trim();
-            } else {
-                image_url = document.getElementById('goodsImageData').value;
-            }
+            let image_url = imageMode === 'url' ? document.getElementById('goodsImageUrl').value.trim() : document.getElementById('goodsImageData').value;
             if (!image_url) return showMsg('请填写图片URL或上传图片');
-
             const powerRatioVal = document.getElementById('goodsPowerRatio').value.trim();
             const body = {
                 id: id ? parseInt(id) : null,
