@@ -35,8 +35,37 @@
         .page.active { display:block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 
-        .banner { margin: 16px; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
-        .banner img { width:100%; display:block; }
+        /* Banner 轮播 */
+        .banner-container {
+            margin: 16px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            position: relative;
+            background: #eee;
+        }
+        .banner-container img {
+            width: 100%;
+            display: block;
+            aspect-ratio: 750 / 320;
+            object-fit: cover;
+        }
+        .banner-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+        }
+        .banner-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            transition: background 0.3s;
+        }
+        .banner-dot.active { background: #fff; }
+
         .assurance { display: flex; justify-content: space-around; margin: 16px; padding: 12px 0; background: var(--card-bg); border-radius: 16px; box-shadow: var(--shadow); }
         .assurance-item { text-align: center; font-size: 13px; color: #666; }
         .assurance-item span { display: block; font-size: 24px; margin-bottom: 4px; }
@@ -100,74 +129,17 @@
             width: 100%;
             max-width: 400px;
         }
-        .coin-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .coin-badge {
-            background: rgba(201,161,94,0.15);
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--gold);
-            border: 1px solid rgba(201,161,94,0.3);
-        }
-        .price-main {
-            font-size: 48px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            margin: 12px 0;
-            background: linear-gradient(90deg, #fff, #e0c48b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .change-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            font-size: 18px;
-            margin: 12px 0;
-        }
-        .change-badge {
-            padding: 6px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-        }
+        .coin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .coin-badge { background: rgba(201,161,94,0.15); padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--gold); border: 1px solid rgba(201,161,94,0.3); }
+        .price-main { font-size: 48px; font-weight: 700; letter-spacing: 2px; margin: 12px 0; background: linear-gradient(90deg, #fff, #e0c48b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .change-row { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 18px; margin: 12px 0; }
+        .change-badge { padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 16px; }
         .change-badge.up { background: rgba(76,175,80,0.2); color: #4caf50; }
         .change-badge.down { background: rgba(244,67,54,0.2); color: #f44336; }
-        .extra-info {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 20px;
-            font-size: 13px;
-            color: #aab;
-        }
-        .extra-info div {
-            background: rgba(255,255,255,0.04);
-            padding: 6px 14px;
-            border-radius: 8px;
-        }
-        .disclaimer {
-            margin-top: 20px;
-            font-size: 11px;
-            color: #666;
-            text-align: center;
-            line-height: 1.5;
-            max-width: 400px;
-        }
-        .footer-market {
-            font-size: 12px;
-            color: #555;
-            text-align: center;
-            padding: 10px 0;
-        }
+        .extra-info { display: flex; justify-content: center; gap: 20px; margin-top: 20px; font-size: 13px; color: #aab; }
+        .extra-info div { background: rgba(255,255,255,0.04); padding: 6px 14px; border-radius: 8px; }
+        .disclaimer { margin-top: 20px; font-size: 11px; color: #666; text-align: center; line-height: 1.5; max-width: 400px; }
+        .footer-market { font-size: 12px; color: #555; text-align: center; padding: 10px 0; }
 
         .member-header { background:linear-gradient(135deg, #2d0a0a, #5a1a1a); color:#fff; padding:30px 20px; display:flex; align-items:center; }
         .avatar { width:70px; height:70px; border-radius:50%; border:2px solid var(--gold); margin-right:18px; }
@@ -224,7 +196,10 @@
 
     <!-- 首页 -->
     <div class="page active" id="homePage">
-        <div class="banner"><img src="https://picsum.photos/750/320?wine01" alt=""></div>
+        <div class="banner-container" id="bannerContainer">
+            <img id="bannerImage" src="" alt="Banner" style="display:none;">
+            <div class="banner-indicator" id="bannerDots"></div>
+        </div>
         <div class="assurance">
             <div class="assurance-item"><span>🏅</span>正品保证</div>
             <div class="assurance-item"><span>🚀</span>极速发货</div>
@@ -257,9 +232,7 @@
                     <div>FDV <span id="fdv">--</span></div>
                 </div>
             </div>
-            <div class="disclaimer">
-                数据及价格有延迟，可能存在误差，仅供参考！
-            </div>
+            <div class="disclaimer">数据及价格有延迟，可能存在误差，仅供参考！</div>
             <div class="footer-market">数据来源 DexScreener（服务端代理）</div>
         </div>
     </div>
@@ -342,17 +315,18 @@
         let hasMore = true;
         let isLoading = false;
 
-        // 直接从 localStorage 获取用户对象（无过期、无 Cookie）
+        // Banner 轮播相关
+        let banners = [];
+        let currentBannerIndex = 0;
+        let bannerTimer = null;
+
         function getLoginUser() {
             try {
                 const raw = localStorage.getItem('loginUser');
                 if (!raw) return null;
                 const data = JSON.parse(raw);
-                // 兼容可能存在的旧格式，但不再处理过期时间
                 return data.user || data;
-            } catch (e) {
-                return null;
-            }
+            } catch (e) { return null; }
         }
 
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
@@ -381,6 +355,48 @@
             })
         });
 
+        // ---------- Banner 功能 ----------
+        async function loadBanners() {
+            try {
+                const res = await fetch('/api/banners');
+                const data = await res.json();
+                if (data.code === 0 && data.list.length > 0) {
+                    banners = data.list;
+                    currentBannerIndex = 0;
+                    renderBanner();
+                    startBannerAutoPlay();
+                } else {
+                    document.getElementById('bannerImage').style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Banner加载失败', e);
+            }
+        }
+
+        function renderBanner() {
+            if (banners.length === 0) return;
+            const img = document.getElementById('bannerImage');
+            img.src = banners[currentBannerIndex].image_url;
+            img.style.display = 'block';
+            const dotsContainer = document.getElementById('bannerDots');
+            let dotsHTML = '';
+            for (let i = 0; i < banners.length; i++) {
+                dotsHTML += `<div class="banner-dot ${i === currentBannerIndex ? 'active' : ''}"></div>`;
+            }
+            dotsContainer.innerHTML = dotsHTML;
+        }
+
+        function startBannerAutoPlay() {
+            if (bannerTimer) clearInterval(bannerTimer);
+            if (banners.length > 1) {
+                bannerTimer = setInterval(() => {
+                    currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+                    renderBanner();
+                }, 3000);
+            }
+        }
+
+        // ---------- 商品分页 ----------
         function resetGoods() { currentPage = 1; hasMore = true; document.getElementById('goodsContainer').innerHTML = ''; }
 
         async function loadGoods(reset = false) {
@@ -391,11 +407,19 @@
                 container.innerHTML = `
                     <div class="goods-item" style="opacity:0.4; pointer-events:none;">
                         <div style="width:80px;height:80px;background:#e0e0e0;border-radius:12px;"></div>
-                        <div class="goods-info"><div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:70%;"></div><div style="height:20px;background:#e0e0e0;border-radius:4px;width:40%;margin-bottom:6px;"></div><div style="height:14px;background:#e0e0e0;border-radius:4px;width:50%;"></div></div>
+                        <div class="goods-info">
+                            <div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:70%;"></div>
+                            <div style="height:20px;background:#e0e0e0;border-radius:4px;width:40%;margin-bottom:6px;"></div>
+                            <div style="height:14px;background:#e0e0e0;border-radius:4px;width:50%;"></div>
+                        </div>
                     </div>
                     <div class="goods-item" style="opacity:0.4; pointer-events:none;">
                         <div style="width:80px;height:80px;background:#e0e0e0;border-radius:12px;"></div>
-                        <div class="goods-info"><div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:60%;"></div><div style="height:20px;background:#e0e0e0;border-radius:4px;width:35%;margin-bottom:6px;"></div><div style="height:14px;background:#e0e0e0;border-radius:4px;width:45%;"></div></div>
+                        <div class="goods-info">
+                            <div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:60%;"></div>
+                            <div style="height:20px;background:#e0e0e0;border-radius:4px;width:35%;margin-bottom:6px;"></div>
+                            <div style="height:14px;background:#e0e0e0;border-radius:4px;width:45%;"></div>
+                        </div>
                     </div>
                 `;
             } else {
@@ -437,6 +461,7 @@
 
         function loadMoreGoods() { loadGoods(false); }
 
+        // ---------- 行情 ----------
         async function loadArtPrice() {
             try {
                 const res = await fetch('/api/art-price');
@@ -456,6 +481,7 @@
 
         function formatVolume(vol) { const v = parseFloat(vol); if (isNaN(v)) return '--'; if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M'; if (v >= 1000) return (v / 1000).toFixed(2) + 'K'; return v.toFixed(2); }
 
+        // ---------- 会员中心 ----------
         function copyInvite(){ navigator.clipboard.writeText(document.getElementById('memberInvite').innerText).then(()=>showToast('复制成功')); }
 
         async function loadMemberData(){
@@ -465,14 +491,9 @@
             const data = await res.json();
             if(data.code===0){
                 const u = data.user;
-                // 更新 localStorage 中的用户信息
                 const raw = localStorage.getItem('loginUser');
                 if (raw) {
-                    try {
-                        const parsed = JSON.parse(raw);
-                        parsed.user = u;
-                        localStorage.setItem('loginUser', JSON.stringify(parsed));
-                    } catch(e) {}
+                    try { const parsed = JSON.parse(raw); parsed.user = u; localStorage.setItem('loginUser', JSON.stringify(parsed)); } catch(e) {}
                 }
                 document.getElementById('memberPhone').innerText = u.phone;
                 document.getElementById('memberInvite').innerText = u.invite_code || '--';
@@ -485,6 +506,7 @@
             loadWithdrawLog();
         }
 
+        // ---------- 订单 ----------
         async function loadOrders(status){
             curOrderStatus = status;
             document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
@@ -498,7 +520,6 @@
             if (orders.length === 0) html = '<div class="order-empty">暂无订单</div>';
             else orders.forEach(o => {
                 const statusMap = { wait: '待发货', send: '已发货', done: '已收货' };
-                // 直接显示北京时间字符串，不再转换
                 const displayTime = o.create_time || '未知时间';
                 html += `<div class="order-item">
                     <div class="info-row"><span class="label">商品</span><span class="value">${o.goods_name || o.goods_id}</span></div>
@@ -521,6 +542,7 @@
             loadOrders(curOrderStatus);
         }
 
+        // ---------- 提现 ----------
         function openWithdraw(){ document.getElementById('mask').classList.add('active'); document.getElementById('withdrawPop').classList.add('active'); }
         async function submitWithdraw(){
             const user = getLoginUser();
@@ -579,6 +601,7 @@
             document.getElementById('withdrawDetailPop').classList.add('active');
         }
 
+        // ---------- 修改密码 ----------
         function openPwdPop(){ document.getElementById('mask').classList.add('active'); document.getElementById('pwdPop').classList.add('active'); }
         async function changePwd(){
             const user = getLoginUser();
@@ -592,6 +615,7 @@
             closePop();
         }
 
+        // ---------- 资产转酒豆 ----------
         async function assetToBean(){
             const user = getLoginUser();
             if (!user) return;
@@ -620,12 +644,13 @@
             location.href = 'index.html';
         }
 
-        // 页面启动，简单检查 localStorage 是否存在
+        // 启动
         window.onload = async function () {
             if (!getLoginUser()) {
                 location.href = 'index.html';
                 return;
             }
+            loadBanners();
             loadGoods(true);
             try { await fetch(`${API}/release`); } catch (e) {}
         };

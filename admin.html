@@ -113,7 +113,7 @@
             </div>
         </div>
 
-        <!-- 商品管理（修改了图片部分） -->
+        <!-- 商品管理（已增加Banner选项） -->
         <div class="panel" id="panel-goods">
             <div class="card"><h3>商品管理</h3>
                 <input type="hidden" id="editId">
@@ -121,7 +121,7 @@
                     <div class="form-item"><label>商品名称</label><input type="text" id="goodsName"></div>
                     <div class="form-item"><label>价格(酒令/酒豆)</label><input type="number" id="goodsPrice"></div>
 
-                    <!-- 图片方式切换 -->
+                    <!-- 图片上传方式切换 -->
                     <div class="form-item">
                         <label>图片方式</label>
                         <select id="imageMode" onchange="toggleImageMode()">
@@ -166,9 +166,21 @@
                         <label>赠送算力倍数</label>
                         <input type="number" id="goodsPowerRatio" step="0.1" placeholder="留空则使用全局设置">
                     </div>
+                    <!-- 新增Banner选项 -->
+                    <div class="form-item">
+                        <label>设为Banner</label>
+                        <select id="goodsIsBanner">
+                            <option value="0">否</option>
+                            <option value="1">是</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex-row"><button class="btn-primary" onclick="saveGoods()">保存商品</button><button class="btn-gray" onclick="clearGoodsForm()">清空</button></div>
-                <hr style="margin:20px 0;"><table><thead><tr><th>ID</th><th>名称</th><th>价格</th><th>图片</th><th>库存</th><th>销量</th><th>状态</th><th>操作</th></tr></thead><tbody id="goodsTable"></tbody></table>
+                <hr style="margin:20px 0;">
+                <table>
+                    <thead><tr><th>ID</th><th>名称</th><th>价格</th><th>图片</th><th>库存</th><th>销量</th><th>Banner</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="goodsTable"></tbody>
+                </table>
             </div>
         </div>
 
@@ -393,7 +405,6 @@
             const res = await fetch(`${API}/levels`, { headers: { 'X-Admin-Key': ADMIN_KEY } });
             const data = await res.json();
             const list = data.list || [];
-            // 所需最低等级
             const requiredSel = document.getElementById('goodsRequiredLevel');
             requiredSel.innerHTML = '<option value="0">无限制</option>';
             list.forEach(l => {
@@ -402,7 +413,6 @@
                 opt.innerText = l.name + ' (级别' + l.level + ')';
                 requiredSel.appendChild(opt);
             });
-            // 购买后升级至等级
             const upgradeSel = document.getElementById('goodsUpgradeLevel');
             upgradeSel.innerHTML = '<option value="0">不升级</option>';
             list.forEach(l => {
@@ -413,7 +423,7 @@
             });
         }
 
-        // ---------- 商品管理（新增切换函数） ----------
+        // ---------- 商品管理（新增 Banner 相关逻辑） ----------
         function toggleImageMode() {
             const mode = document.getElementById('imageMode').value;
             document.getElementById('urlInputGroup').style.display = mode === 'url' ? 'block' : 'none';
@@ -423,15 +433,10 @@
         function previewUrl() {
             const url = document.getElementById('goodsImageUrl').value.trim();
             const preview = document.getElementById('urlPreview');
-            if (url) {
-                preview.src = url;
-                preview.style.display = 'block';
-            } else {
-                preview.style.display = 'none';
-            }
+            if (url) { preview.src = url; preview.style.display = 'block'; }
+            else { preview.style.display = 'none'; }
         }
 
-        // 原有的 previewImage 函数保持不变（用于 base64）
         function previewImage() {
             const file = document.getElementById('goodsImageFile').files[0];
             if (!file) return;
@@ -442,11 +447,8 @@
                     const canvas = document.createElement('canvas');
                     const maxSize = 640;
                     let width = img.width, height = img.height;
-                    if (width > height) {
-                        if (width > maxSize) { height *= maxSize / width; width = maxSize; }
-                    } else {
-                        if (height > maxSize) { width *= maxSize / height; height = maxSize; }
-                    }
+                    if (width > height) { if (width > maxSize) { height *= maxSize / width; width = maxSize; } }
+                    else { if (height > maxSize) { width *= maxSize / height; height = maxSize; } }
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
@@ -466,16 +468,18 @@
             const list = data.list || [];
             let html = '';
             list.forEach(g => {
+                const bannerText = g.is_banner == 1 ? '是' : '否';
                 html += `<tr>
                     <td>${g.id}</td><td>${g.name}</td><td>${g.price}</td>
                     <td><img src="${g.image_url}" width="50" style="border-radius:6px;"></td>
                     <td>${g.stock || 0}</td><td>${g.sales || 0}</td>
+                    <td>${bannerText}</td>
                     <td>${g.status === 'active' ? '上架' : '下架'}</td>
                     <td><button class="btn-outline" onclick="editGoods(${g.id})">编辑</button>
                     <button class="btn-gray" onclick="deleteGoods(${g.id})">下架</button></td>
                 </tr>`;
             });
-            document.getElementById('goodsTable').innerHTML = html || '<tr><td colspan="8">暂无商品</td></tr>';
+            document.getElementById('goodsTable').innerHTML = html || '<tr><td colspan="9">暂无商品</td></tr>';
         }
 
         function clearGoodsForm() {
@@ -497,6 +501,7 @@
             document.getElementById('goodsUpgradeLevel').value = '0';
             document.getElementById('goodsStock').value = '0';
             document.getElementById('goodsPowerRatio').value = '';
+            document.getElementById('goodsIsBanner').value = '0';
         }
 
         async function editGoods(id) {
@@ -507,7 +512,6 @@
                 document.getElementById('editId').value = g.id;
                 document.getElementById('goodsName').value = g.name;
                 document.getElementById('goodsPrice').value = g.price;
-                // 判断图片是 base64 还是 URL
                 if (g.image_url && g.image_url.startsWith('data:')) {
                     document.getElementById('imageMode').value = 'base64';
                     toggleImageMode();
@@ -518,19 +522,20 @@
                     document.getElementById('imageMode').value = 'url';
                     toggleImageMode();
                     document.getElementById('goodsImageUrl').value = g.image_url || '';
-                    document.getElementById('urlPreview').src = g.image_url || '';
-                    document.getElementById('urlPreview').style.display = g.image_url ? 'block' : 'none';
+                    const urlPreview = document.getElementById('urlPreview');
+                    urlPreview.src = g.image_url || '';
+                    urlPreview.style.display = g.image_url ? 'block' : 'none';
                 }
                 document.getElementById('goodsSort').value = g.sort;
                 document.getElementById('goodsStatus').value = g.status;
                 document.getElementById('goodsDesc').value = g.description || '';
                 document.getElementById('goodsPayType').value = g.pay_type || 'token';
-                // 加载等级下拉选项
                 await loadLevelOptions();
                 document.getElementById('goodsRequiredLevel').value = g.required_level || 0;
                 document.getElementById('goodsUpgradeLevel').value = g.upgrade_level || 0;
                 document.getElementById('goodsStock').value = g.stock || 0;
                 document.getElementById('goodsPowerRatio').value = (g.power_ratio != null) ? g.power_ratio : '';
+                document.getElementById('goodsIsBanner').value = g.is_banner || 0;
             }
         }
 
@@ -558,7 +563,8 @@
                 required_level: parseInt(document.getElementById('goodsRequiredLevel').value) || 0,
                 upgrade_level: parseInt(document.getElementById('goodsUpgradeLevel').value) || 0,
                 stock: parseInt(document.getElementById('goodsStock').value) || 0,
-                power_ratio: powerRatioVal === '' ? null : parseFloat(powerRatioVal)
+                power_ratio: powerRatioVal === '' ? null : parseFloat(powerRatioVal),
+                is_banner: parseInt(document.getElementById('goodsIsBanner').value)
             };
             await fetch(`${API}/goods`, {
                 method: 'POST',
@@ -622,9 +628,7 @@
                     document.getElementById('currentParent').innerText = data.user.parent_phone || '无上级';
                     document.getElementById('relationInfo').style.display = 'block';
                     window._relationPhone = phone;
-                } else {
-                    showMsg('用户不存在');
-                }
+                } else { showMsg('用户不存在'); }
             } catch (e) { showMsg('查询失败'); }
         }
 
