@@ -141,6 +141,50 @@
         .disclaimer { margin-top: 20px; font-size: 11px; color: #666; text-align: center; line-height: 1.5; max-width: 400px; }
         .footer-market { font-size: 12px; color: #555; text-align: center; padding: 10px 0; }
 
+        /* TP钱包下载模块 */
+        .download-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            padding: 24px;
+            margin: 0 16px 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        .download-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .android-icon {
+            font-size: 24px;
+        }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #c9a15e, #8c1c13);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(140,28,19,0.3);
+            transition: transform 0.2s;
+        }
+        .download-btn:active { transform: scale(0.97); }
+
         .member-header { background:linear-gradient(135deg, #2d0a0a, #5a1a1a); color:#fff; padding:30px 20px; display:flex; align-items:center; }
         .avatar { width:70px; height:70px; border-radius:50%; border:2px solid var(--gold); margin-right:18px; }
         .member-info { display:flex; flex-direction:column; gap:6px; }
@@ -217,6 +261,16 @@
     <!-- 行情页 -->
     <div class="page" id="cartPage">
         <div class="market-bg">
+            <!-- TP钱包下载模块 -->
+            <div class="download-card">
+                <div class="download-title">
+                    <span class="android-icon">🤖</span> TP钱包下载
+                </div>
+                <a href="https://dl.tpstatic.net/apk/TokenPocket-pro.apk" class="download-btn" target="_blank">
+                    <span>📱</span> Android-APK <span>⬇️</span>
+                </a>
+            </div>
+
             <div class="price-hero">
                 <div class="coin-header">
                     <span class="coin-badge">ART / BSC</span>
@@ -315,12 +369,10 @@
         let hasMore = true;
         let isLoading = false;
 
-        // Banner 轮播相关
         let banners = [];
         let currentBannerIndex = 0;
         let bannerTimer = null;
 
-        // 全局兑换比例（用于乐观更新）
         window.beanRate = 5;
 
         function getLoginUser() {
@@ -335,7 +387,6 @@
         function showToast(msg){ const t=document.getElementById('toast'); t.innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
         function closePop(){ document.getElementById('mask').classList.remove('active'); document.querySelectorAll('.pop').forEach(p=>p.classList.remove('active')); }
 
-        // 导航切换
         document.querySelectorAll('.footer-item').forEach(item => {
             item.addEventListener('click', function () {
                 document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
@@ -358,7 +409,6 @@
             })
         });
 
-        // ---------- Banner 功能 ----------
         async function loadBanners() {
             try {
                 const res = await fetch('/api/banners');
@@ -397,7 +447,6 @@
             }
         }
 
-        // ---------- 商品分页 ----------
         function resetGoods() { currentPage = 1; hasMore = true; document.getElementById('goodsContainer').innerHTML = ''; }
 
         async function loadGoods(reset = false) {
@@ -454,7 +503,6 @@
 
         function loadMoreGoods() { loadGoods(false); }
 
-        // ---------- 行情 ----------
         async function loadArtPrice() {
             try {
                 const res = await fetch('/api/art-price');
@@ -474,7 +522,6 @@
 
         function formatVolume(vol) { const v = parseFloat(vol); if (isNaN(v)) return '--'; if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M'; if (v >= 1000) return (v / 1000).toFixed(2) + 'K'; return v.toFixed(2); }
 
-        // ---------- 会员中心 ----------
         function copyInvite(){ navigator.clipboard.writeText(document.getElementById('memberInvite').innerText).then(()=>showToast('复制成功')); }
 
         async function loadMemberData(){
@@ -495,12 +542,10 @@
                 document.getElementById('assetVal').innerText = u.asset || '0.00';
                 document.getElementById('beanVal').innerText = u.bean || 0;
                 document.getElementById('tokenVal').innerText = u.token || 0;
-                // 不再重复获取全局配置，直接在 onload 时初始化的 window.beanRate 即可
             }
             loadWithdrawLog();
         }
 
-        // ---------- 订单 ----------
         async function loadOrders(status){
             curOrderStatus = status;
             document.querySelectorAll('.order-tab-item').forEach(t=>t.classList.remove('active'));
@@ -536,7 +581,6 @@
             loadOrders(curOrderStatus);
         }
 
-        // ---------- 提现 ----------
         function openWithdraw(){ document.getElementById('mask').classList.add('active'); document.getElementById('withdrawPop').classList.add('active'); }
         async function submitWithdraw(){
             const user = getLoginUser();
@@ -595,7 +639,6 @@
             document.getElementById('withdrawDetailPop').classList.add('active');
         }
 
-        // ---------- 修改密码 ----------
         function openPwdPop(){ document.getElementById('mask').classList.add('active'); document.getElementById('pwdPop').classList.add('active'); }
         async function changePwd(){
             const user = getLoginUser();
@@ -609,7 +652,6 @@
             closePop();
         }
 
-        // ---------- 资产转酒豆（乐观更新 + 不再全量刷新会员中心） ----------
         async function assetToBean(){
             const user = getLoginUser();
             if (!user) return;
@@ -621,7 +663,6 @@
             const oldBean = parseInt(user.bean) || 0;
             const oldAsset = parseFloat(user.asset) || 0;
 
-            // 乐观更新 UI
             document.getElementById('assetVal').innerText = '0.00';
             document.getElementById('beanVal').innerText = oldBean + previewBean;
             user.asset = '0';
@@ -635,7 +676,6 @@
                 const res = await fetch(`${API}/asset-to-bean`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone }) });
                 const data = await res.json();
                 showToast(data.msg || '兑换完成');
-                // 只同步用户资产，不重新加载订单等
                 setTimeout(async () => { await refreshLocalUser(); }, 300);
             } catch (e) {
                 document.getElementById('assetVal').innerText = oldAsset.toFixed(2);
@@ -667,13 +707,11 @@
             location.href = 'index.html';
         }
 
-        // 启动
         window.onload = async function () {
             if (!getLoginUser()) {
                 location.href = 'index.html';
                 return;
             }
-            // 仅初始化兑换比例
             try {
                 const configRes = await fetch(`${API}/config`);
                 const configData = await configRes.json();
