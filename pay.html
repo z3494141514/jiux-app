@@ -45,6 +45,7 @@
             width: 70px; height: 70px;
             border-radius: 12px;
             object-fit: cover;
+            background: #f0f0f0;
         }
         .goods-preview .name {
             font-weight: 600;
@@ -56,6 +57,15 @@
             font-weight: 700;
             font-size: 18px;
         }
+        /* 骨架屏占位 */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
         .row {
             display:flex;
             justify-content: space-between;
@@ -141,25 +151,27 @@
     <div class="card">
         <div class="title">确认支付</div>
 
+        <!-- 商品预览（用占位图快速显示，加载后替换） -->
         <div class="goods-preview">
-            <img id="goodsImage" src="" alt="商品图">
+            <img id="goodsImage" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="加载中">
             <div>
-                <div class="name" id="goodsName">加载中...</div>
-                <div class="price" id="goodsPrice">¥0</div>
+                <div class="name" id="goodsName"><span class="skeleton" style="display:inline-block;width:120px;height:16px;"></span></div>
+                <div class="price" id="goodsPrice"><span class="skeleton" style="display:inline-block;width:80px;height:20px;"></span></div>
             </div>
         </div>
 
-        <div class="row"><span class="label" id="payTypeLabel">所需酒令</span><span class="highlight" id="payAmount">0</span></div>
-        <div class="row"><span class="label" id="balanceLabel">当前酒令</span><span id="balanceValue">0</span></div>
-        <div class="row"><span class="label">赠送算力</span><span id="addPower">0</span></div>
+        <div class="row"><span class="label" id="payTypeLabel">所需酒令</span><span class="highlight" id="payAmount">--</span></div>
+        <div class="row"><span class="label" id="balanceLabel">当前酒令</span><span id="balanceValue">--</span></div>
+        <div class="row"><span class="label">赠送算力</span><span id="addPower">--</span></div>
 
         <div class="tip">
-            支付成功后自动进入待发货订单。<br>算力倍数：<span id="ratio">2</span>x
+            支付成功后自动进入待发货订单。<br>算力倍数：<span id="ratio">--</span>x
         </div>
 
+        <!-- 收货地址 -->
         <div class="address-section" id="addressSection">
             <div class="current-address" id="addressDisplay">
-                <span id="addressText" style="font-size:14px;">暂无默认地址</span>
+                <span id="addressText" style="font-size:14px;"><span class="skeleton" style="display:inline-block;width:200px;height:14px;"></span></span>
                 <button class="edit-btn" onclick="showAddressInput()">修改</button>
             </div>
             <div class="address-input" id="addressInput" style="display:none;">
@@ -185,6 +197,7 @@
             setTimeout(()=>{ t.classList.remove('show'); if(cb) cb(); },2000);
         }
 
+        // 并行加载所有数据
         async function loadData() {
             const url = new URL(location.href);
             goodsId = parseInt(url.searchParams.get('gid')) || 0;
@@ -192,62 +205,63 @@
 
             let userStr = localStorage.getItem('loginUser');
             if(!userStr) { location.href='index.html'; return; }
-            const loginData = JSON.parse(localStorage.getItem('loginUser') || '{}');
-currUser = loginData.user || loginData;
+            try {
+                const loginData = JSON.parse(userStr);
+                currUser = loginData.user || loginData;
+            } catch(e) { location.href='index.html'; return; }
 
-            // 获取商品详情
-            const goodsRes = await fetch(`${API}/goods-detail?id=${goodsId}`);
-            const goodsData = await goodsRes.json();
-            if(goodsData.code===0) {
-                const g = goodsData.good;
+            // 同时发起三个请求，谁先返回谁先处理
+            const [goodsRes, userRes, configRes] = await Promise.all([
+                fetch(`${API}/goods-detail?id=${goodsId}`).then(r => r.json()).catch(() => null),
+                fetch(`${API}/user?phone=${currUser.phone}`).then(r => r.json()).catch(() => null),
+                fetch(`${API}/config`).then(r => r.json()).catch(() => ({ config: {} }))
+            ]);
+
+            // 处理商品信息
+            if (goodsRes && goodsRes.code === 0) {
+                const g = goodsRes.good;
                 document.getElementById('goodsImage').src = g.image_url;
                 document.getElementById('goodsName').innerText = g.name;
                 document.getElementById('goodsPrice').innerText = '¥' + g.price;
                 document.getElementById('payAmount').innerText = payPrice;
                 payType = g.pay_type || 'token';
-                const payLabel = payType === 'token' ? '所需酒令' : '所需酒豆';
-                document.getElementById('payTypeLabel').innerText = payLabel;
+                document.getElementById('payTypeLabel').innerText = payType === 'token' ? '所需酒令' : '所需酒豆';
                 document.getElementById('balanceLabel').innerText = payType === 'token' ? '当前酒令' : '当前酒豆';
                 const balance = payType === 'token' ? (currUser.token || 0) : (currUser.bean || 0);
                 document.getElementById('balanceValue').innerText = balance;
 
-                const cfgRes = await fetch(`${API}/config`);
-                const cfgData = await cfgRes.json();
-                globalPowerRatio = cfgData.config ? (Number(cfgData.config.powerRatio) || 2) : 2;
-
-                let calcPowerRatio;
-                if (g.power_ratio !== null && g.power_ratio !== undefined) {
-                    calcPowerRatio = Number(g.power_ratio);
-                } else {
-                    calcPowerRatio = globalPowerRatio;
-                }
+                // 计算赠送算力（全局配置已获取）
+                globalPowerRatio = configRes.config ? (Number(configRes.config.powerRatio) || 2) : 2;
+                let calcPowerRatio = (g.power_ratio !== null && g.power_ratio !== undefined) ? Number(g.power_ratio) : globalPowerRatio;
                 document.getElementById('addPower').innerText = Math.floor(payPrice * calcPowerRatio);
                 document.getElementById('ratio').innerText = calcPowerRatio;
+            } else {
+                document.getElementById('goodsName').innerText = '商品信息加载失败';
             }
 
-            // 获取用户默认地址
-            try {
-                const userRes = await fetch(`${API}/user?phone=${currUser.phone}`);
-                const userData = await userRes.json();
-                if(userData.code === 0 && userData.user.address) {
-                    userAddress = userData.user.address;
+            // 处理地址信息
+            if (userRes && userRes.code === 0) {
+                userAddress = userRes.user.address || '';
+                if (userAddress) {
                     document.getElementById('addressText').innerText = userAddress;
                 } else {
                     document.getElementById('addressText').innerText = '暂无默认地址';
                     showAddressInput();
                 }
-            } catch (e) {
+            } else {
                 document.getElementById('addressText').innerText = '暂无默认地址';
                 showAddressInput();
             }
         }
 
+        // 显示地址输入框
         function showAddressInput() {
             document.getElementById('addressDisplay').style.display = 'none';
             document.getElementById('addressInput').style.display = 'flex';
             document.getElementById('addressField').value = userAddress || '';
         }
 
+        // 保存地址
         async function saveAddress() {
             const addr = document.getElementById('addressField').value.trim();
             if(!addr) return showToast('请输入地址');
@@ -268,17 +282,13 @@ currUser = loginData.user || loginData;
             }
         }
 
-        // 支付函数
+        // 支付
         async function doPay() {
-            // 严格校验地址：如果变量为空且页面显示的也不是有效地址，则弹出输入框
-            const displayedAddr = document.getElementById('addressText').innerText;
-            if (!userAddress && (displayedAddr === '暂无默认地址' || displayedAddr === '')) {
+            const finalAddr = userAddress || document.getElementById('addressText').innerText;
+            if (!finalAddr || finalAddr === '暂无默认地址') {
                 showAddressInput();
                 return showToast('请先填写收货地址');
             }
-            // 优先使用变量，其次使用页面显示的地址
-            const finalAddress = userAddress || displayedAddr;
-
             const res = await fetch(`${API}/pay`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -286,7 +296,7 @@ currUser = loginData.user || loginData;
                     phone: currUser.phone,
                     goodsId,
                     price: payPrice,
-                    address: finalAddress
+                    address: finalAddr
                 })
             });
             const data = await res.json();
