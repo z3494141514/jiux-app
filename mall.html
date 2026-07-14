@@ -266,9 +266,10 @@
                 <div class="download-title">
                     <span class="android-icon">🤖</span> TP钱包下载
                 </div>
-                <a href="https://dl.tpstatic.net/apk/TokenPocket-pro.apk" class="download-btn" target="_blank">
+                <!-- 改为 button 并使用 onclick 处理 -->
+                <button class="download-btn" onclick="handleDownload()">
                     <span>📱</span> Android-APK <span>⬇️</span>
-                </a>
+                </button>
             </div>
 
             <div class="price-hero">
@@ -408,6 +409,27 @@
                 window.scrollTo(0, 0);
             })
         });
+
+        // TP钱包下载处理函数
+        function handleDownload() {
+            const downloadUrl = 'https://dl.tpstatic.net/apk/TokenPocket-pro.apk';
+            // 提示用户
+            showToast('正在为您下载 TP 钱包，请留意通知栏');
+            // 尝试直接下载，不影响当前页面
+            try {
+                window.open(downloadUrl, '_blank');
+            } catch (e) {
+                // 如果被拦截，可以额外提供一个复制链接的机制，但这里先简单处理
+            }
+            // 备选：如果 window.open 被阻止，也可创建一个隐藏的 a 标签并点击
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.target = '_blank';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
 
         async function loadBanners() {
             try {
