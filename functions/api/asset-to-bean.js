@@ -18,10 +18,11 @@ export async function onRequest({ request, env }) {
       });
     }
 
-    // 查询用户
-    const user = await env.DB.prepare(
-      "SELECT asset, bean FROM users WHERE phone = ?"
-    ).bind(phone).first();
+    // ✅ 优化：并行查询用户和配置，减少一次数据库往返
+    const [user, cfg] = await Promise.all([
+      env.DB.prepare("SELECT asset, bean FROM users WHERE phone = ?").bind(phone).first(),
+      env.DB.prepare("SELECT value FROM config WHERE key = 'assetToBeanRate'").first()
+    ]);
 
     if (!user) {
       return new Response(JSON.stringify({ code: 1, msg: '用户不存在' }), {
@@ -38,10 +39,6 @@ export async function onRequest({ request, env }) {
       });
     }
 
-    // 获取兑换比例
-    const cfg = await env.DB.prepare(
-      "SELECT value FROM config WHERE key = 'assetToBeanRate'"
-    ).first();
     const rate = Number(cfg?.value) || 5;
     const addBean = Math.floor(asset * rate);
 
