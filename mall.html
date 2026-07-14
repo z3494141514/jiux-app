@@ -320,6 +320,9 @@
         let currentBannerIndex = 0;
         let bannerTimer = null;
 
+        // 全局兑换比例（用于乐观更新）
+        window.beanRate = 5;
+
         function getLoginUser() {
             try {
                 const raw = localStorage.getItem('loginUser');
@@ -368,9 +371,7 @@
                 } else {
                     document.getElementById('bannerImage').style.display = 'none';
                 }
-            } catch (e) {
-                console.error('Banner加载失败', e);
-            }
+            } catch (e) { console.error('Banner加载失败', e); }
         }
 
         function renderBanner() {
@@ -407,19 +408,11 @@
                 container.innerHTML = `
                     <div class="goods-item" style="opacity:0.4; pointer-events:none;">
                         <div style="width:80px;height:80px;background:#e0e0e0;border-radius:12px;"></div>
-                        <div class="goods-info">
-                            <div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:70%;"></div>
-                            <div style="height:20px;background:#e0e0e0;border-radius:4px;width:40%;margin-bottom:6px;"></div>
-                            <div style="height:14px;background:#e0e0e0;border-radius:4px;width:50%;"></div>
-                        </div>
+                        <div class="goods-info"><div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:70%;"></div><div style="height:20px;background:#e0e0e0;border-radius:4px;width:40%;margin-bottom:6px;"></div><div style="height:14px;background:#e0e0e0;border-radius:4px;width:50%;"></div></div>
                     </div>
                     <div class="goods-item" style="opacity:0.4; pointer-events:none;">
                         <div style="width:80px;height:80px;background:#e0e0e0;border-radius:12px;"></div>
-                        <div class="goods-info">
-                            <div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:60%;"></div>
-                            <div style="height:20px;background:#e0e0e0;border-radius:4px;width:35%;margin-bottom:6px;"></div>
-                            <div style="height:14px;background:#e0e0e0;border-radius:4px;width:45%;"></div>
-                        </div>
+                        <div class="goods-info"><div style="height:16px;background:#e0e0e0;border-radius:4px;margin-bottom:6px;width:60%;"></div><div style="height:20px;background:#e0e0e0;border-radius:4px;width:35%;margin-bottom:6px;"></div><div style="height:14px;background:#e0e0e0;border-radius:4px;width:45%;"></div></div>
                     </div>
                 `;
             } else {
@@ -502,6 +495,12 @@
                 document.getElementById('assetVal').innerText = u.asset || '0.00';
                 document.getElementById('beanVal').innerText = u.bean || 0;
                 document.getElementById('tokenVal').innerText = u.token || 0;
+                // 更新兑换比例
+                const configRes = await fetch(`${API}/config`);
+                const configData = await configRes.json();
+                if (configData.config) {
+                    window.beanRate = Number(configData.config.assetToBeanRate) || 5;
+                }
             }
             loadWithdrawLog();
         }
@@ -615,14 +614,40 @@
             closePop();
         }
 
-        // ---------- 资产转酒豆 ----------
+        // ---------- 资产转酒豆（乐观更新版） ----------
         async function assetToBean(){
             const user = getLoginUser();
             if (!user) return;
-            const res = await fetch(`${API}/asset-to-bean`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone }) });
-            const data = await res.json();
-            showToast(data.msg || '兑换完成');
-            if (data.code === 0) { await refreshLocalUser(); loadMemberData(); }
+            const asset = parseFloat(user.asset) || 0;
+            if (asset <= 0) return showToast('没有可兑换的资产');
+
+            const rate = window.beanRate || 5;
+            const previewBean = Math.floor(asset * rate);
+            const oldBean = parseInt(user.bean) || 0;
+            const oldAsset = parseFloat(user.asset) || 0;
+
+            // 乐观更新 UI
+            document.getElementById('assetVal').innerText = '0.00';
+            document.getElementById('beanVal').innerText = oldBean + previewBean;
+            user.asset = '0';
+            user.bean = oldBean + previewBean;
+            const raw = localStorage.getItem('loginUser');
+            if (raw) {
+                try { const parsed = JSON.parse(raw); parsed.user = user; localStorage.setItem('loginUser', JSON.stringify(parsed)); } catch(e) {}
+            }
+
+            try {
+                const res = await fetch(`${API}/asset-to-bean`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone }) });
+                const data = await res.json();
+                showToast(data.msg || '兑换完成');
+                // 静默同步真实数据
+                setTimeout(async () => { await refreshLocalUser(); loadMemberData(); }, 300);
+            } catch (e) {
+                // 失败回滚
+                document.getElementById('assetVal').innerText = oldAsset.toFixed(2);
+                document.getElementById('beanVal').innerText = oldBean;
+                showToast('兑换失败，请重试');
+            }
         }
 
         async function refreshLocalUser(){
@@ -636,6 +661,10 @@
                 if (raw) {
                     try { const parsed = JSON.parse(raw); parsed.user = u; localStorage.setItem('loginUser', JSON.stringify(parsed)); } catch(e) {}
                 }
+                document.getElementById('powerVal').innerText = u.power || 0;
+                document.getElementById('assetVal').innerText = u.asset || '0.00';
+                document.getElementById('beanVal').innerText = u.bean || 0;
+                document.getElementById('tokenVal').innerText = u.token || 0;
             }
         }
 
@@ -650,6 +679,12 @@
                 location.href = 'index.html';
                 return;
             }
+            // 初始化兑换比例
+            try {
+                const configRes = await fetch(`${API}/config`);
+                const configData = await configRes.json();
+                if (configData.config) window.beanRate = Number(configData.config.assetToBeanRate) || 5;
+            } catch(e) {}
             loadBanners();
             loadGoods(true);
             try { await fetch(`${API}/release`); } catch (e) {}
