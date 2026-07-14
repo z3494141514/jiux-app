@@ -495,12 +495,7 @@
                 document.getElementById('assetVal').innerText = u.asset || '0.00';
                 document.getElementById('beanVal').innerText = u.bean || 0;
                 document.getElementById('tokenVal').innerText = u.token || 0;
-                // 更新兑换比例
-                const configRes = await fetch(`${API}/config`);
-                const configData = await configRes.json();
-                if (configData.config) {
-                    window.beanRate = Number(configData.config.assetToBeanRate) || 5;
-                }
+                // 不再重复获取全局配置，直接在 onload 时初始化的 window.beanRate 即可
             }
             loadWithdrawLog();
         }
@@ -614,7 +609,7 @@
             closePop();
         }
 
-        // ---------- 资产转酒豆（乐观更新版） ----------
+        // ---------- 资产转酒豆（乐观更新 + 不再全量刷新会员中心） ----------
         async function assetToBean(){
             const user = getLoginUser();
             if (!user) return;
@@ -640,10 +635,9 @@
                 const res = await fetch(`${API}/asset-to-bean`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: user.phone }) });
                 const data = await res.json();
                 showToast(data.msg || '兑换完成');
-                // 静默同步真实数据
-                setTimeout(async () => { await refreshLocalUser(); loadMemberData(); }, 300);
+                // 只同步用户资产，不重新加载订单等
+                setTimeout(async () => { await refreshLocalUser(); }, 300);
             } catch (e) {
-                // 失败回滚
                 document.getElementById('assetVal').innerText = oldAsset.toFixed(2);
                 document.getElementById('beanVal').innerText = oldBean;
                 showToast('兑换失败，请重试');
@@ -679,7 +673,7 @@
                 location.href = 'index.html';
                 return;
             }
-            // 初始化兑换比例
+            // 仅初始化兑换比例
             try {
                 const configRes = await fetch(`${API}/config`);
                 const configData = await configRes.json();
