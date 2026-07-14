@@ -48,6 +48,9 @@ export async function onRequest({ request, env }) {
     }
     const addPower = Math.floor(price * powerRatio);
 
+    // 生成北京时间字符串（用于订单和日志）
+    const beijingTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+
     // 构建事务语句
     const statements = [];
 
@@ -64,10 +67,10 @@ export async function onRequest({ request, env }) {
       );
     }
 
-    // 插入订单（含地址）
+    // 插入订单（含地址、支付方式、北京时间）
     statements.push(
-      env.DB.prepare("INSERT INTO orders (phone, goods_id, price, address, pay_type) VALUES (?, ?, ?, ?, ?)")
-        .bind(phone, goodsId, price, address, payType)
+      env.DB.prepare("INSERT INTO orders (phone, goods_id, price, address, pay_type, create_time) VALUES (?, ?, ?, ?, ?, ?)")
+        .bind(phone, goodsId, price, address, payType, beijingTime)
     );
 
     // 升级处理
@@ -85,14 +88,14 @@ export async function onRequest({ request, env }) {
         const rewardAmount = Math.floor(price * rewardPercent / 100);
         if (rewardAmount > 0) {
           statements.push(env.DB.prepare("UPDATE users SET token = token + ? WHERE phone = ?").bind(rewardAmount, buyer.parent_phone));
-          statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount) VALUES (?, ?, 1, ?)").bind(phone, buyer.parent_phone, rewardAmount));
+          statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount, create_time) VALUES (?, ?, 1, ?, ?)").bind(phone, buyer.parent_phone, rewardAmount, beijingTime));
 
           const parent1 = await env.DB.prepare("SELECT parent_phone FROM users WHERE phone = ?").bind(buyer.parent_phone).first();
           if (parent1 && parent1.parent_phone) {
             const reward2 = Math.floor(price * rewardPercent / 200);
             if (reward2 > 0) {
               statements.push(env.DB.prepare("UPDATE users SET token = token + ? WHERE phone = ?").bind(reward2, parent1.parent_phone));
-              statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount) VALUES (?, ?, 2, ?)").bind(phone, parent1.parent_phone, reward2));
+              statements.push(env.DB.prepare("INSERT INTO reward_log (from_phone, to_phone, level, amount, create_time) VALUES (?, ?, 2, ?, ?)").bind(phone, parent1.parent_phone, reward2, beijingTime));
             }
           }
         }
