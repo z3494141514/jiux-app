@@ -13,7 +13,7 @@ export async function onRequest({ request, env }) {
 
   // 分页参数
   const page = parseInt(url.searchParams.get('page')) || 1;
-  const limit = parseInt(url.searchParams.get('limit')) || 2;   // 默认每页4个
+  const limit = parseInt(url.searchParams.get('limit')) || 2;   // 默认每页2个
   const offset = (page - 1) * limit;
 
   // 查询总数（用于前端判断是否还有更多）
