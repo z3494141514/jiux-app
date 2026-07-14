@@ -539,8 +539,7 @@
             if (orders.length === 0) html = '<div class="order-empty">暂无订单</div>';
             else orders.forEach(o => {
                 const statusMap = { wait: '待发货', send: '已发货', done: '已收货' };
-                let displayTime = '';
-                try { displayTime = new Date(o.create_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }); } catch(e) { displayTime = o.create_time; }
+                let displayTime = o.create_time || '未知时间';
                 html += `<div class="order-item">
                     <div class="info-row"><span class="label">商品</span><span class="value">${o.goods_name || o.goods_id}</span></div>
                     <div class="info-row"><span class="label">金额</span><span class="value">¥${o.price}</span></div>
